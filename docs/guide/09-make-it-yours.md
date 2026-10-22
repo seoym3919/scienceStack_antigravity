@@ -91,9 +91,9 @@ The [Eval playbook](../../skills/science-mode/playbooks/eval.md) is built around
 
 Read every output yourself before accepting the verdict. If you disagree with the judge, suspect the rubric before you suspect your judgment.
 
-## Build a bot UI with `/make-bot-ui`
+## Build reusable verification tools
 
-One situational skill is for Grok Bot users. [`/make-bot-ui`](../../skills/make-bot-ui/SKILL.md) builds a small page whose buttons wake a bot over a webhook routine. For example, you could swipe through a review queue and have each swipe ask the bot to act on that item. A server on your machine holds the webhook's sender key, so the key never reaches the browser or the chat. The skill also covers exposing the page on Tailscale.
+When repetitive verification or analysis tasks emerge, apply the [Build the Lever](../../skills/science-mode/principles/build-the-lever.md) principle. Build a small verification script, AST auditor, or manufactured solution harness instead of performing checks by hand. That script becomes a permanent reproducible artifact that reviewers and CI pipelines can rerun automatically.
 
 **Pitfall:** don't edit a skill mid-task because it's misbehaving. Fix it in its own PR and keep the task moving. A skill edit that ships tangled into feature work is invisible to review and impossible to evaluate.
 

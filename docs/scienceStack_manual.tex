@@ -119,6 +119,20 @@
     bottom=8pt
 }
 
+\newtcolorbox{notebox}[1]{
+    colback=secondaryblue!5!white,
+    colframe=secondaryblue,
+    fonttitle=\bfseries\sffamily,
+    title={Architectural Note: #1},
+    enhanced,
+    attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    boxed title style={colback=secondaryblue},
+    sharp corners,
+    boxrule=1pt,
+    top=8pt,
+    bottom=8pt
+}
+
 \begin{document}
 
 % -------------------------------------------------------------
@@ -140,9 +154,11 @@
     \begin{minipage}{0.48\textwidth}
         \begin{flushleft} \large
             \textbf{Core Architecture:}\\
-            64 Specialized Skills\\
+            35 Top-Level Skills\\
+            29 Bundled Core Principles\\
             3 Dedicated Subagents\\
-            1 Unified Runtime Rule
+            1 Unified Runtime Rule\\
+            1 Pre-Tool Safety Hook
         \end{flushleft}
     \end{minipage}
     \hfill
@@ -182,7 +198,7 @@ In traditional software engineering, artificial intelligence coding assistants o
     \item \textbf{Analytical Limits \& Golden Datasets}: Every scientific kernel must be validated against closed-form exact solutions, the Method of Manufactured Solutions (MMS), or canonical industry benchmark datasets (e.g., Sod shock tube, Taylor-Green vortex, Robertson stiff ODEs).
 \end{enumerate}
 
-With 64 automated skills, three specialized subagent personas (\texttt{science-master}, \texttt{theory-reviewer}, and \texttt{comment-master}), and native Antigravity asynchronous orchestration, \texttt{scienceStack} enables fearless parallel development while upholding the mathematical rigor demanded by modern science.
+With 35 top-level skills, 29 bundled scientific and software engineering principles, three specialized subagent personas (\texttt{science-master}, \texttt{theory-reviewer}, and \texttt{comment-master}), and native Antigravity asynchronous orchestration, \texttt{scienceStack} enables fearless parallel development while upholding the mathematical rigor demanded by modern science.
 
 \newpage
 \pagenumbering{arabic}
@@ -270,7 +286,7 @@ Confirm that the plugin and its agents are active:
 agy plugin list
 # Expected output:
 # - sciencestack (enabled, 0.15.29)
-#   Components: 64 skills, 3 agents, 1 rule
+#   Components: 35 skills, 3 agents, 1 rule, 1 hook
 
 agy agent
 # Expected output:
@@ -399,7 +415,7 @@ Comments that narrate the obvious, defend sloppy design, or preserve dead code d
 \chapter{The Five Core Scientific Principles}
 
 \section{Principle 1: Equation Provenance and Formal Documentation}
-\textbf{Skill}: \texttt{skills/principle-equation-provenance/SKILL.md}
+\textbf{Principle File}: \texttt{skills/science-mode/principles/equation-provenance.md}
 
 Every mathematical function or kernel in a scientific codebase must declare its provenance. Code without equation provenance is untestable against theory.
 
@@ -449,7 +465,7 @@ def plane_strain_normal_stress(
 \end{lstlisting}
 
 \section{Principle 2: Dimensional Discipline \& Scaling}
-\textbf{Skill}: \texttt{skills/principle-dimensional-discipline/SKILL.md}
+\textbf{Principle File}: \texttt{skills/science-mode/principles/dimensional-discipline.md}
 
 Physical quantities possess dimensions in fundamental SI units ($[M], [L], [T], [\Theta], [I]$). Dimensional mismatch is proof of a mathematical bug.
 
@@ -465,7 +481,7 @@ Physical quantities possess dimensions in fundamental SI units ($[M], [L], [T], 
 \end{principlebox}
 
 \section{Principle 3: Preservation of Physical Conservation Laws}
-\textbf{Skill}: \texttt{skills/principle-preserve-conservation-laws/SKILL.md}
+\textbf{Principle File}: \texttt{skills/science-mode/principles/preserve-conservation-laws.md}
 
 According to Noether's theorem, every continuous physical symmetry corresponds to a conserved invariant:
 \begin{itemize}
@@ -481,7 +497,7 @@ Standard dissipative discrete schemes (such as implicit backward Euler) artifici
 \end{equation}
 
 \section{Principle 4: Numerical Stability First}
-\textbf{Skill}: \texttt{skills/principle-numerical-stability-first/SKILL.md}
+\textbf{Principle File}: \texttt{skills/science-mode/principles/numerical-stability-first.md}
 
 Numerical algorithms must remain stable in floating-point arithmetic ($\text{IEEE-754}$). Premature vectorization must never compromise numerical conditioning.
 
@@ -517,7 +533,7 @@ x = np.linalg.solve(A, b)
 \end{warningbox}
 
 \section{Principle 5: Verification Against Analytical Limits and Golden Benchmarks}
-\textbf{Skill}: \texttt{skills/principle-verify-analytical-limits/SKILL.md}
+\textbf{Principle File}: \texttt{skills/science-mode/principles/verify-analytical-limits.md}
 
 Unit tests asserting that code ``runs without throwing an exception'' are insufficient for scientific software. Verification requires rigorous mathematical convergence:
 \begin{enumerate}
@@ -913,28 +929,47 @@ These artifacts support GitHub-style alerts (\texttt{NOTE}, \texttt{TIP}, \textt
 \bottomrule
 \end{longtable}
 
-\section{Scientific Principles Catalog}
+\section{Scientific and Engineering Principles Catalog}
+
+\begin{notebox}{Token-Optimized Principle Architecture}
+To eliminate discovery prompt bloat, the 29 principles are bundled under \texttt{skills/science-mode/principles/} rather than registered as individual top-level discovery skills. This saves over 1,300 prompt tokens per user message while remaining fully indexed and dynamically accessible by \texttt{science-mode} and subagents.
+\end{notebox}
 
 \begin{longtable}{>{\raggedright\arraybackslash\small\ttfamily}p{6.6cm} >{\raggedright\arraybackslash\small}p{8.6cm}}
 \toprule
-\rmfamily\bfseries Principle Skill & \rmfamily\bfseries Rule \& Core Mandate \\
+\rmfamily\bfseries Principle & \rmfamily\bfseries Rule \& Core Mandate \\
 \midrule
 \endfirsthead
 \toprule
-\rmfamily\bfseries Principle Skill & \rmfamily\bfseries Rule \& Core Mandate \\
+\rmfamily\bfseries Principle & \rmfamily\bfseries Rule \& Core Mandate \\
 \midrule
 \endhead
-principle-equation-provenance & Continuous equation in LaTeX, literature citation, coordinate/sign documentation. \\
-principle-dimensional-discipline & Validate $[LHS] = [RHS]$, non-dimensionalization, dimensionless transcendental inputs. \\
-principle-preserve-conservation-laws & Explicitly monitor and conserve energy, mass, momentum, and norm invariants. \\
-principle-numerical-stability-first & Eliminate cancellation; ban \texttt{inv(A) @ b}; use conditioned linear solvers. \\
-principle-verify-analytical-limits & Method of Manufactured Solutions (MMS), closed-form benchmarks, $O(h^p)$ convergence. \\
-principle-laziness-protocol & Bias toward deletion and the smallest change that solves the problem. \\
-principle-foundational-thinking & Get data structures and core types right before writing algorithmic logic. \\
-principle-redesign-from-first-principles & Redesign as if the requirement were foundational from day one. \\
-principle-attack-the-premise & When multiple fixes fail, write down and test the shared underlying premise. \\
-principle-subtract-before-you-add & Remove dead code and redundant wrappers before building new features. \\
-principle-minimize-reader-load & Collapse one-caller wrappers and shrink mutable state scope. \\
+equation-provenance & Continuous equation in LaTeX, literature citation, coordinate/sign documentation. \\
+dimensional-discipline & Validate $[LHS] = [RHS]$, non-dimensionalization, dimensionless transcendental inputs. \\
+preserve-conservation-laws & Explicitly monitor and conserve energy, mass, momentum, and norm invariants. \\
+numerical-stability-first & Eliminate cancellation; ban \texttt{inv(A) @ b}; use conditioned linear solvers. \\
+verify-analytical-limits & Method of Manufactured Solutions (MMS), closed-form benchmarks, $O(h^p)$ convergence. \\
+laziness-protocol & Bias toward deletion and the smallest change that solves the problem. \\
+foundational-thinking & Get data structures and core types right before writing algorithmic logic. \\
+redesign-from-first-principles & Redesign as if the requirement were foundational from day one. \\
+attack-the-premise & When multiple fixes fail, write down and test the shared underlying premise. \\
+subtract-before-you-add & Remove dead code and redundant wrappers before building new features. \\
+minimize-reader-load & Collapse one-caller wrappers and shrink mutable state scope. \\
+build-the-lever & Build reproducible scripts/tools instead of performing work by hand. \\
+model-the-domain & Encode the domain in a structure instead of scattered conditionals. \\
+boundary-discipline & Validate at system boundaries; trust internal types and keep pure functions. \\
+type-system-discipline & Make illegal states unrepresentable; brand semantic primitives; derive types. \\
+make-operations-idempotent & Converge to the same end state regardless of partial prior runs. \\
+migrate-callers-then-delete & Migrate callers and delete old APIs in the same wave. \\
+separate-before-serializing & Eliminate state sharing first; serialize structurally only when needed. \\
+prove-it-works & Verify against the real artifact and execution proof, never self-reports. \\
+fix-root-causes & Trace symptoms back to the initial origin and fix them at the root. \\
+sequence-verifiable-units & Break work into small units ending in verifiable states. \\
+test-behavior-not-impl & Assert observable behavior, not internal implementation details. \\
+explain-the-number & Name what limits a measured performance number and rule out artifacts. \\
+guard-the-context-window & Route bulk reading to subagents; keep summaries in the main thread. \\
+never-block-on-the-human & Proceed on reversible tasks; reserve prompts for irreversible actions. \\
+encode-lessons-in-structure & Turn repeated advice into automated lints, hooks, or checks. \\
 \bottomrule
 \end{longtable}
 

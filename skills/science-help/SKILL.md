@@ -79,11 +79,15 @@ The default answer is `/science-mode`, which runs most of the others when its st
 | Run parallel checks over slices, or race workers, as cloud agents | [`/swarm`](../swarm/SKILL.md) |
 | Have different models review a diff and try to break it | [`/interrogate`](../interrogate/SKILL.md) |
 | Fix a bug test-first when a cheap local test exists | [`/tdd`](../tdd/SKILL.md) |
-| Apply TypeScript rules to `.ts` or `.tsx` work | [`/typescript-best-practices`](../typescript-best-practices/SKILL.md) |
+| Verify equations against LaTeX formulations and signs | [`/scientific-equation-verifier`](../scientific-equation-verifier/SKILL.md) |
+| Audit numerical stability, cancellation, and matrix condition | [`/numerical-stability-audit`](../numerical-stability-audit/SKILL.md) |
+| Benchmark against canonical industry problems and golden data | [`/golden-dataset-benchmark`](../golden-dataset-benchmark/SKILL.md) |
+| Solve celestial mechanics, orbits, Kepler, and coordinate frames | [`/astronomy-computing`](../astronomy-computing/SKILL.md) |
+| Audit floating-point precision traps (float32 vs float64) | [`/precision-audit`](../precision-audit/SKILL.md) |
+| Accelerate scientific kernels with memory layouts and SIMD | [`/accelerated-scientific-computing`](../accelerated-scientific-computing/SKILL.md) |
 | Strip comments before review, using a reviewer that didn't write them | [`/no-comments`](../no-comments/SKILL.md) |
 | Clean AI tells out of prose | [`/unslop`](../unslop/SKILL.md) |
 | Write docs, an RFC, a README, a PR description, or a commit message to a standard | [`/technical-writing`](../technical-writing/SKILL.md) |
-| Hear the last reply again in plain words | [`/bro`](../bro/SKILL.md) |
 | Give agents a scripted way to drive the app and prove behavior | [`/create-verification-skill`](../create-verification-skill/SKILL.md) |
 | Bring a verification skill and its feature map back in line with the app | [`/maintain-verification-skill`](../maintain-verification-skill/SKILL.md) |
 | Formally verify a race, invariant, or other property that tests rarely reach | [`/create-formal-verification-skill`](../create-formal-verification-skill/SKILL.md) |
@@ -95,10 +99,9 @@ The default answer is `/science-mode`, which runs most of the others when its st
 | Turn their own working habits into a personal mode skill | [`/automate-me`](../automate-me/SKILL.md) |
 | Turn what a finished task taught into skill edits | [`/reflect`](../reflect/SKILL.md) |
 | Stop agents from repeating the same mistakes in this repo | [`/correct`](../correct/SKILL.md) |
-| Build a page whose buttons wake a Grok Bot over a webhook | [`/make-bot-ui`](../make-bot-ui/SKILL.md) |
 | Find their way around scienceStack | `/science-help` (or `/poteto-help`) |
 
-If a skill directory next to this one is missing from the table, read its frontmatter and route by its description. The `principle-*` directories are covered under principles below.
+If a skill directory next to this one is missing from the table, read its frontmatter and route by its description. The 29 principles are bundled in `skills/science-mode/principles/`.
 
 Close calls:
 
@@ -130,7 +133,7 @@ Without `/science-mode`, a phrase such as "babysit this pr" can start Cursor's o
 
 pstack has no planning skill. Cursor's Plan Mode works alongside it. For work that spans phases or stacked PRs, asking `/science-mode` for a plan runs the [Multi-phase plan playbook](../science-mode/playbooks/multi-phase-plan.md), which writes the plan and doesn't implement it. For a design question, the Prototype playbook or `/architect` settles it in code first.
 
-Principles are one-rule skills that `/science-mode` reads and cites in its replies. The user rarely invokes one. They steer with the names instead, as in "apply prove it works. show me the real output." Typing `/principle-<name>` still loads one on demand. [Guide page 8](../../docs/guide/08-principles.md) lists them.
+Principles are core guidelines that `/science-mode` reads and cites in its replies. The user rarely invokes one directly. They steer with the names instead, as in "apply prove it works. show me the real output." All 29 principles are bundled under `skills/science-mode/principles/` for token efficiency. [Guide page 8](../../docs/guide/08-principles.md) lists them.
 
 ## Fix a run that went wrong
 

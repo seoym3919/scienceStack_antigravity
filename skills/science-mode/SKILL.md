@@ -43,7 +43,7 @@ Remaining triggers:
 
 ## Principles
 
-Read the leaf skill in full for any principle you apply. Each entry names when it applies. Each leaf is the **principle-<title>** skill, with the title in kebab case, hyphens kept and other punctuation dropped, unless the entry gives its name.
+Principle reference guides are stored in `principles/<title>.md` under this skill directory. Each entry summarizes when it applies. Read the corresponding reference file when applying that principle in depth.
 
 **Core**
 

@@ -142,13 +142,13 @@ apply prove it works. show me the real output, not the build log.
 
 You rarely need more words. You need the right name, and [the principles page](./08-principles.md) is the vocabulary.
 
-## Get the reply in plain words
+## Explain a subsystem plainly
 
 ```text
-/bro
+/teach
 ```
 
-That's the whole prompt. [`/bro`](../../skills/bro/SKILL.md) restates the last message like one human talking to another, no jargon, shorter. Use it when a reply is technically thorough and you still don't know what it said.
+[`/teach`](../../skills/teach/SKILL.md) synthesizes how and why a component works into one plain explanation, built up diagram by diagram. Use it when an implementation is complex and you want to understand the architecture clearly.
 
 ## Catch up on a chat you left running
 

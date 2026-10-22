@@ -50,9 +50,9 @@ When a bug has a cheap local test path, the whole prompt can be two words:
 
 In context, that's enough. [`/tdd`](../../skills/tdd/SKILL.md) writes the smallest test that fails for the intended reason, then the fix, then reruns the test. If a test would need broad harness setup or brittle mocks, the skill says so and uses the closest executable check instead. Don't force a test where a real command is stronger evidence.
 
-## Load the TypeScript rules by name
+## Apply type system discipline
 
-[`typescript-best-practices`](../../skills/typescript-best-practices/SKILL.md) turns the type-system principles into concrete rules: discriminated unions, `unknown` at boundaries, exhaustive variants, schema-derived types. It doesn't load on its own, so type `/typescript-best-practices` when a task touches `.ts` or `.tsx` files.
+The [Type System Discipline](../../skills/science-mode/principles/type-system-discipline.md) principle turns type theory into concrete implementation rules: make illegal states unrepresentable, use branded types at boundaries, derive types from schemas, and enforce exhaustive pattern matching. For floating-point and numerical precision checks, invoke [`/precision-audit`](../../skills/precision-audit/SKILL.md).
 
 ## Clean before you commit
 
