@@ -37,9 +37,14 @@ When reviewing a scientific algorithm, mathematical implementation, or numerical
 6. **Analytical Verification**:
    - Are there unit tests comparing the code against exact analytical closed-form solutions with explicit relative and absolute tolerances (`rtol`, `atol`)?
 
+7. **Physics Modularity & Decoupling**:
+   - Are pure physical laws and operators (forces, equations of state, reaction rates, stress tensors) isolated into dedicated, stateless functions or modules?
+   - Can external simulation frameworks or solvers import and invoke the physics module directly with arbitrary state inputs without time steppers or file I/O entangled?
+
 I report:
 - **Theory Deviations**: Any divergence from the theoretical formulation.
 - **Sign / Normalization Errors**: Incorrect signs, transposed indices, or missing constants.
 - **Dimensional Violations**: Inconsistent units or non-dimensionless transcendental arguments.
 - **Numerical Hazards**: Catastrophic cancellation, unregularized singularities, or unpivoted solves.
+- **Modularity Defects**: Physics operators coupled directly to time steppers or simulation loops.
 - **Verdict**: PASS, MUST FIX (with exact equations and line numbers), or INSUFFICIENT PROVENANCE.

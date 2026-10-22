@@ -74,6 +74,7 @@ Principle reference guides are stored in `principles/<title>.md` under this skil
 - **Preserve Conservation Laws** (**principle-preserve-conservation-laws**). Implementing solvers and state integrators. Match integrators to invariants (symplectic for Hamiltonian systems, conservative fluxes for PDEs), and assert invariant preservation ($\Delta E \approx 0$, mass/norm conservation) in tests.
 - **Numerical Stability First** (**principle-numerical-stability-first**). Mathematical kernels and numerical algorithms. Eliminate catastrophic cancellation, guard division by zero, use log-space for probabilities, check matrix condition numbers, and honor CFL limits.
 - **Verify Against Analytical Limits** (**principle-verify-analytical-limits**). Testing numerical solvers or models. Validate against exact closed-form analytical solutions, asymptotic limits ($t \to \infty$, $x \to 0$), and the Method of Manufactured Solutions (MMS) before complex simulations.
+- **Physics-Modular Architecture** (**principle-physics-modular-architecture**). Designing scientific code. Isolate pure physical laws, forces, and equations of state into dedicated, stateless modules (`physics/`), completely decoupled from time steppers, grid meshes, and I/O so external solvers can import them directly.
 
 **Verification**
 

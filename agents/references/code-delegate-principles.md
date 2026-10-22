@@ -25,6 +25,10 @@ Compact implementation guide for `science-master` worker subagents.
    - Write automated unit tests verifying the implementation against closed-form analytical benchmarks or the Method of Manufactured Solutions (MMS) with explicit relative tolerances (`rtol`, `atol`).
    - Run `python3 scripts/audit_numerical_ast.py <file>` to verify AST compliance before reporting completion.
 
-6. **Execution Discipline**:
+6. **Physics-Modular Architecture**:
+   - Decouple pure physical laws (equations of state, forces, rate equations, potentials) from numerical time steppers, spatial grids, and simulation loops.
+   - Structure physics routines as stateless, callable pure functions in dedicated modules (`physics/`) so other solvers or external codes can import and call them directly.
+
+7. **Execution Discipline**:
    - Work in an isolated branch (`Workspace: "branch"`).
    - Return a clean diff summary with empirical test results to the parent orchestrator.

@@ -38,6 +38,142 @@ import math
 from typing import List, Tuple, Dict, Any
 
 
+# =============================================================================
+# Modular Physics Functions (Driver-agnostic, callable by external codes)
+# =============================================================================
+
+def compute_gravitational_accelerations(
+    positions: List[List[float]],
+    masses: List[float],
+    G: float = 1.0,
+    softening: float = 0.0
+) -> List[List[float]]:
+    r"""
+    Compute pairwise Newtonian gravitational accelerations for an N-body system.
+
+    Governing Equation:
+    \begin{equation}
+        \mathbf{a}_i = -G \sum_{j \neq i} m_j \frac{\mathbf{q}_i - \mathbf{q}_j}{(\|\mathbf{q}_i - \mathbf{q}_j\|^2 + \epsilon^2)^{3/2}}
+    \end{equation}
+
+    Parameters
+    ----------
+    positions : List[List[float]]
+        3D Cartesian coordinate vectors [length].
+    masses : List[float]
+        Point masses [mass].
+    G : float, optional
+        Gravitational constant, by default 1.0.
+    softening : float, optional
+        Plummer softening parameter \epsilon to prevent unphysical singular forces [length].
+
+    Returns
+    -------
+    List[List[float]]
+        3D acceleration vectors [length / time^2].
+    """
+    n = len(masses)
+    acc = [[0.0, 0.0, 0.0] for _ in range(n)]
+    soft_sq = softening * softening
+
+    for i in range(n):
+        qi = positions[i]
+        for j in range(i + 1, n):
+            qj = positions[j]
+            dx = qi[0] - qj[0]
+            dy = qi[1] - qj[1]
+            dz = qi[2] - qj[2]
+            r_sq = dx * dx + dy * dy + dz * dz + soft_sq
+            r = math.sqrt(r_sq)
+            inv_r3 = 1.0 / (r * r_sq)
+
+            f_factor = G * inv_r3
+            ax = f_factor * dx
+            ay = f_factor * dy
+            az = f_factor * dz
+
+            acc[i][0] -= masses[j] * ax
+            acc[i][1] -= masses[j] * ay
+            acc[i][2] -= masses[j] * az
+
+            acc[j][0] += masses[i] * ax
+            acc[j][1] += masses[i] * ay
+            acc[j][2] += masses[i] * az
+
+    return acc
+
+
+def compute_gravitational_potential(
+    positions: List[List[float]],
+    masses: List[float],
+    G: float = 1.0,
+    softening: float = 0.0
+) -> float:
+    r"""
+    Compute total gravitational potential energy V of an N-body system.
+
+    Governing Equation:
+    \begin{equation}
+        V = -\sum_{1 \le i < j \le N} \frac{G m_i m_j}{\sqrt{\|\mathbf{q}_i - \mathbf{q}_j\|^2 + \epsilon^2}}
+    \end{equation}
+    """
+    n = len(masses)
+    V = 0.0
+    soft_sq = softening * softening
+    for i in range(n):
+        qi = positions[i]
+        for j in range(i + 1, n):
+            qj = positions[j]
+            dx = qi[0] - qj[0]
+            dy = qi[1] - qj[1]
+            dz = qi[2] - qj[2]
+            r = math.sqrt(dx * dx + dy * dy + dz * dz + soft_sq)
+            if r > 0.0:
+                V -= (G * masses[i] * masses[j]) / r
+    return V
+
+
+def compute_kinetic_energy(velocities: List[List[float]], masses: List[float]) -> float:
+    r"""Compute total kinetic energy T = 0.5 * \sum m_i \|\mathbf{v}_i\|^2."""
+    T = 0.0
+    for i in range(len(masses)):
+        v_sq = sum(vk * vk for vk in velocities[i])
+        T += 0.5 * masses[i] * v_sq
+    return T
+
+
+def compute_linear_momentum(velocities: List[List[float]], masses: List[float]) -> Tuple[float, float, float]:
+    r"""Compute total linear momentum \mathbf{P} = \sum m_i \mathbf{v}_i."""
+    Px, Py, Pz = 0.0, 0.0, 0.0
+    for i in range(len(masses)):
+        m = masses[i]
+        Px += m * velocities[i][0]
+        Py += m * velocities[i][1]
+        Pz += m * velocities[i][2]
+    return Px, Py, Pz
+
+
+def compute_angular_momentum(
+    positions: List[List[float]],
+    velocities: List[List[float]],
+    masses: List[float]
+) -> Tuple[float, float, float]:
+    r"""Compute total angular momentum \mathbf{L} = \sum m_i (\mathbf{q}_i \times \mathbf{v}_i)."""
+    Lx, Ly, Lz = 0.0, 0.0, 0.0
+    for i in range(len(masses)):
+        m = masses[i]
+        rx, ry, rz = positions[i]
+        vx, vy, vz = velocities[i]
+        Lx += m * (ry * vz - rz * vy)
+        Ly += m * (rz * vx - rx * vz)
+        Lz += m * (rx * vy - ry * vx)
+    return Lx, Ly, Lz
+
+
+# =============================================================================
+# Symplectic Integrator & System Coordinator
+# =============================================================================
+
 class SymplecticNBodySystem:
     def __init__(self, masses: List[float], positions: List[List[float]], velocities: List[List[float]], G: float = 1.0):
         self.n = len(masses)
@@ -53,38 +189,8 @@ class SymplecticNBodySystem:
         self.initial_L = self.compute_angular_momentum()
 
     def compute_accelerations(self, q_state: List[List[float]], softening: float = 0.0) -> List[List[float]]:
-        r"""Compute gravitational accelerations a_i = -G \sum_{j!=i} m_j (r_i - r_j) / |r_i - r_j|^3."""
-        acc = [[0.0, 0.0, 0.0] for _ in range(self.n)]
-        soft_sq = softening * softening
-
-        for i in range(self.n):
-            qi = q_state[i]
-            for j in range(i + 1, self.n):
-                qj = q_state[j]
-                dx = qi[0] - qj[0]
-                dy = qi[1] - qj[1]
-                dz = qi[2] - qj[2]
-                r_sq = dx * dx + dy * dy + dz * dz + soft_sq
-                r = math.sqrt(r_sq)
-                inv_r3 = 1.0 / (r * r_sq)
-
-                # Force magnitude components
-                f_factor = self.G * inv_r3
-                ax = f_factor * dx
-                ay = f_factor * dy
-                az = f_factor * dz
-
-                # a_i = -m_j * factor * dr
-                acc[i][0] -= self.masses[j] * ax
-                acc[i][1] -= self.masses[j] * ay
-                acc[i][2] -= self.masses[j] * az
-
-                # a_j = +m_i * factor * dr (Newton's third law)
-                acc[j][0] += self.masses[i] * ax
-                acc[j][1] += self.masses[i] * ay
-                acc[j][2] += self.masses[i] * az
-
-        return acc
+        r"""Compute gravitational accelerations via modular physics function."""
+        return compute_gravitational_accelerations(q_state, self.masses, G=self.G, softening=softening)
 
     def step_leapfrog(self, dt: float) -> None:
         r"""Symplectic Drift-Kick-Drift step (2nd order)."""
@@ -107,49 +213,18 @@ class SymplecticNBodySystem:
                 self.q[i][k] += half_dt * self.v[i][k]
 
     def compute_total_energy(self) -> float:
-        r"""Compute E = T + V."""
-        # Kinetic energy T = 0.5 * \sum m_i v_i^2
-        T = 0.0
-        for i in range(self.n):
-            v_sq = sum(vk * vk for vk in self.v[i])
-            T += 0.5 * self.masses[i] * v_sq
-
-        # Potential energy V = -\sum_{i<j} G m_i m_j / r_{ij}
-        V = 0.0
-        for i in range(self.n):
-            qi = self.q[i]
-            for j in range(i + 1, self.n):
-                qj = self.q[j]
-                dx = qi[0] - qj[0]
-                dy = qi[1] - qj[1]
-                dz = qi[2] - qj[2]
-                r = math.sqrt(dx * dx + dy * dy + dz * dz)
-                if r > 0.0:
-                    V -= (self.G * self.masses[i] * self.masses[j]) / r
-
+        r"""Compute E = T + V via modular physics functions."""
+        T = compute_kinetic_energy(self.v, self.masses)
+        V = compute_gravitational_potential(self.q, self.masses, G=self.G)
         return T + V
 
     def compute_linear_momentum(self) -> Tuple[float, float, float]:
-        r"""Compute total P = \sum m_i v_i."""
-        Px, Py, Pz = 0.0, 0.0, 0.0
-        for i in range(self.n):
-            m = self.masses[i]
-            Px += m * self.v[i][0]
-            Py += m * self.v[i][1]
-            Pz += m * self.v[i][2]
-        return Px, Py, Pz
+        r"""Compute total P = \sum m_i v_i via modular physics function."""
+        return compute_linear_momentum(self.v, self.masses)
 
     def compute_angular_momentum(self) -> Tuple[float, float, float]:
-        r"""Compute total L = \sum m_i (r_i x v_i)."""
-        Lx, Ly, Lz = 0.0, 0.0, 0.0
-        for i in range(self.n):
-            m = self.masses[i]
-            rx, ry, rz = self.q[i]
-            vx, vy, vz = self.v[i]
-            Lx += m * (ry * vz - rz * vy)
-            Ly += m * (rz * vx - rx * vz)
-            Lz += m * (rx * vy - ry * vx)
-        return Lx, Ly, Lz
+        r"""Compute total L = \sum m_i (r_i x v_i) via modular physics function."""
+        return compute_angular_momentum(self.q, self.v, self.masses)
 
     def audit_invariants(self) -> Dict[str, float]:
         r"""Audit relative drift of all physical invariants."""

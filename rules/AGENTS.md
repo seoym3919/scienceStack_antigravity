@@ -21,4 +21,5 @@
    - **Numerical Stability**: Never use explicit matrix inversion (`inv(A) @ b`); use `solve(A, b)`. Prevent cancellation via `log1p`, `expm1`. Guard divisions.
    - **Astronomy & Orbits**: Standard Runge-Kutta is strictly prohibited for long-term orbit integration due to secular energy drift. Use symplectic Leapfrog / Yoshida splitting (`benchmarks/astronomy/symplectic_nbody.py`).
    - **Coordinate Frames**: Transformations between ICRS J2000, Ecliptic, and Galactic must use orthonormal $\mathrm{SO}(3)$ rotation matrices (`benchmarks/astronomy/coordinate_transforms.py`).
+   - **Physics Modularity**: Isolate pure physical laws, forces, and equations of state into dedicated, stateless modules (`physics/`), completely decoupled from time steppers, grid meshes, and I/O so external solvers can import them directly.
    - **Automated Verification**: Run `python3 scripts/audit_numerical_ast.py <file>` for AST safety checks. Load `skills/astronomy-computing` or `skills/scientific-equation-verifier` for deep domain guidance.

@@ -155,7 +155,7 @@
         \begin{flushleft} \large
             \textbf{Core Architecture:}\\
             35 Top-Level Skills\\
-            29 Bundled Core Principles\\
+            30 Bundled Core Principles\\
             3 Dedicated Subagents\\
             1 Unified Runtime Rule\\
             1 Pre-Tool Safety Hook
@@ -196,9 +196,10 @@ In traditional software engineering, artificial intelligence coding assistants o
     \item \textbf{Conservation Law Guarantees}: Numerical schemes are required to track and conserve physical invariants (energy, mass, momentum, probability norm) within specified tolerance thresholds.
     \item \textbf{Numerical Stability First}: The framework strictly bans naive mathematical implementations (e.g., explicit matrix inversion $\mathbf{A}^{-1}\mathbf{b}$, unscaled floating-point differences) in favor of conditioned algorithms (\texttt{solve(A, b)}, \texttt{logsumexp}, \texttt{expm1}).
     \item \textbf{Analytical Limits \& Golden Datasets}: Every scientific kernel must be validated against closed-form exact solutions, the Method of Manufactured Solutions (MMS), or canonical industry benchmark datasets (e.g., Sod shock tube, Taylor-Green vortex, Robertson stiff ODEs).
+    \item \textbf{Physics-Modular Architecture}: Physical laws, equations of state, forces, and rate equations must be isolated into dedicated, driver-agnostic modules (\texttt{physics/}) so other simulation codes and external solvers can invoke them directly without coupling to numerical time steppers or spatial grids.
 \end{enumerate}
 
-With 35 top-level skills, 29 bundled scientific and software engineering principles, three specialized subagent personas (\texttt{science-master}, \texttt{theory-reviewer}, and \texttt{comment-master}), and native Antigravity asynchronous orchestration, \texttt{scienceStack} enables fearless parallel development while upholding the mathematical rigor demanded by modern science.
+With 35 top-level skills, 30 bundled scientific and software engineering principles, three specialized subagent personas (\texttt{science-master}, \texttt{theory-reviewer}, and \texttt{comment-master}), and native Antigravity asynchronous orchestration, \texttt{scienceStack} enables fearless parallel development while upholding the mathematical rigor demanded by modern science.
 
 \newpage
 \pagenumbering{arabic}
@@ -410,9 +411,9 @@ Comments that narrate the obvious, defend sloppy design, or preserve dead code d
 \end{itemize}
 
 % -------------------------------------------------------------
-% Chapter 4: The Five Core Scientific Principles
+% Chapter 4: The Six Core Scientific Principles
 % -------------------------------------------------------------
-\chapter{The Five Core Scientific Principles}
+\chapter{The Six Core Scientific Principles}
 
 \section{Principle 1: Equation Provenance and Formal Documentation}
 \textbf{Principle File}: \texttt{skills/science-mode/principles/equation-provenance.md}
@@ -544,6 +545,69 @@ Unit tests asserting that code ``runs without throwing an exception'' are insuff
     \end{equation}
     \item \textbf{Golden Datasets}: Validate against community-accepted experimental or high-resolution numerical datasets stored in \texttt{tests/golden/}.
 \end{enumerate}
+
+\section{Principle 6: Physics-Modular Architecture \& Decoupled Operators}
+\textbf{Principle File}: \texttt{skills/science-mode/principles/physics-modular-architecture.md}
+
+Scientific simulation software frequently degrades into monolithic codebases where physics governing laws (e.g., gravitational accelerations, nuclear reaction networks, equations of state, radiative transfer opacity, stress-strain tensors) are tightly entangled with numerical time steppers (Runge-Kutta, Leapfrog), spatial mesh topologies, and file I/O operations.
+
+When physical models are monolithic, external research codes, alternate integrators, and higher-order solvers cannot invoke the physics routines independently. \texttt{scienceStack} mandates a strict \textbf{Physics-Modular Architecture}:
+
+\begin{principlebox}{Physics-Modular Architecture}
+\begin{enumerate}
+    \item \textbf{Decouple Physics from Numerics}:
+    Isolate pure physical laws into dedicated, stateless modules (\texttt{physics/}). Physics operators must accept pure state vectors $\mathbf{y}$ and physical parameters $\mathbf{p}$, computing state derivatives $\frac{d\mathbf{y}}{dt}$, accelerations $\mathbf{a}_i$, or fluxes $\mathbf{F}(\mathbf{u})$ without time-stepping logic or grid allocations:
+    \begin{equation}
+        \mathbf{a}_i = \mathcal{F}_{\text{phys}}(\{\mathbf{q}_j\}, \{m_j\}, G, \epsilon)
+    \end{equation}
+    \item \textbf{Generalized Numerical Steppers}:
+    Numerical integrators (e.g., symplectic Leapfrog, Radau, BDF) must be physics-agnostic, accepting an arbitrary callable physics operator:
+    \begin{equation}
+        \mathbf{y}^{n+1} = \mathcal{I}_{\text{stepper}}(\mathbf{y}^n, \Delta t, \mathcal{F}_{\text{phys}})
+    \end{equation}
+    \item \textbf{Driver-Agnostic Composability}:
+    Ensure external solvers or other analysis codes can directly import and execute the physics module without instantiating simulation drivers.
+\end{enumerate}
+\end{principlebox}
+
+\subsection{Architectural Comparison: Monolithic vs. Modular}
+
+\begin{lstlisting}[language=Python, caption={Non-compliant monolithic coupling}]
+# BAD: Gravitational force calculation is inextricably tangled inside 
+# the simulation loop and file output logic. Other codes cannot reuse this physics.
+class MonolithicSimulation:
+    def step_and_save(self, dt, filepath):
+        for i in range(self.n):
+            for j in range(self.n):
+                # Physics formula embedded inside stepper...
+                ...
+        self.positions += self.velocities * dt
+        self.save_to_disk(filepath)
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={Compliant physics-modular decomposition}]
+# GOOD:
+# 1. Pure physics module: callable by ANY solver or analysis tool
+# physics/gravity.py
+def gravitational_accelerations(
+    positions: List[List[float]], 
+    masses: List[float], 
+    G: float = 1.0, 
+    softening: float = 0.0
+) -> List[List[float]]:
+    r"""Stateless physics operator: a_i = -G \sum_j m_j (q_i - q_j) / |q_i - q_j|^3."""
+    ...
+    return accelerations
+
+# 2. Generalized numerical stepper (physics-agnostic)
+# numerics/symplectic.py
+def leapfrog_step(q, v, dt, accel_operator):
+    r"""Symplectic Drift-Kick-Drift step accepting any acceleration operator."""
+    q_half = q + 0.5 * dt * v
+    v_next = v + dt * accel_operator(q_half)
+    q_next = q_half + 0.5 * dt * v_next
+    return q_next, v_next
+\end{lstlisting}
 
 % -------------------------------------------------------------
 % Chapter 5: Primary Scientific Skills and Playbooks
@@ -932,7 +996,7 @@ These artifacts support GitHub-style alerts (\texttt{NOTE}, \texttt{TIP}, \textt
 \section{Scientific and Engineering Principles Catalog}
 
 \begin{notebox}{Token-Optimized Principle Architecture}
-To eliminate discovery prompt bloat, the 29 principles are bundled under \texttt{skills/science-mode/principles/} rather than registered as individual top-level discovery skills. This saves over 1,300 prompt tokens per user message while remaining fully indexed and dynamically accessible by \texttt{science-mode} and subagents.
+To eliminate discovery prompt bloat, the 30 principles are bundled under \texttt{skills/science-mode/principles/} rather than registered as individual top-level discovery skills. This saves over 1,300 prompt tokens per user message while remaining fully indexed and dynamically accessible by \texttt{science-mode} and subagents.
 \end{notebox}
 
 \begin{longtable}{>{\raggedright\arraybackslash\small\ttfamily}p{6.6cm} >{\raggedright\arraybackslash\small}p{8.6cm}}
@@ -949,6 +1013,7 @@ dimensional-discipline & Validate $[LHS] = [RHS]$, non-dimensionalization, dimen
 preserve-conservation-laws & Explicitly monitor and conserve energy, mass, momentum, and norm invariants. \\
 numerical-stability-first & Eliminate cancellation; ban \texttt{inv(A) @ b}; use conditioned linear solvers. \\
 verify-analytical-limits & Method of Manufactured Solutions (MMS), closed-form benchmarks, $O(h^p)$ convergence. \\
+physics-modular-architecture & Isolate pure physical laws, forces, and equations of state into callable modules. \\
 laziness-protocol & Bias toward deletion and the smallest change that solves the problem. \\
 foundational-thinking & Get data structures and core types right before writing algorithmic logic. \\
 redesign-from-first-principles & Redesign as if the requirement were foundational from day one. \\

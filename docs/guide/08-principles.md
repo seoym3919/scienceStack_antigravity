@@ -1,6 +1,6 @@
 # Steer with principle names
 
-scienceStack ships 29 principles bundled under `skills/science-mode/principles/`. `/science-mode` reads their index at the start of every multi-step task, applies the ones the task triggers, and names each applied principle in its reply along with the decision it changed.
+scienceStack ships 30 principles bundled under `skills/science-mode/principles/`. `/science-mode` reads their index at the start of every multi-step task, applies the ones the task triggers, and names each applied principle in its reply along with the decision it changed.
 
 You don't invoke principles. You use their names to steer. Each name points at a complete rule the agent has already read, so one phrase redirects the work more precisely than a paragraph of instructions.
 
@@ -26,7 +26,7 @@ separate before serializing shared state. give each attempt its own worktree, no
 
 Each phrase lands because the rule behind it is specific. The agent still has to say, in its reply, which decision the rule changed. A principle citation with no decision behind it means the agent named the rule without applying it.
 
-## The 29, briefly
+## The 30, briefly
 
 The scientific principles enforce theoretical and mathematical rigor:
 
@@ -35,6 +35,7 @@ The scientific principles enforce theoretical and mathematical rigor:
 - [Numerical Stability First](../../skills/science-mode/principles/numerical-stability-first.md) eliminates cancellation, bans `inv(A) @ b`, and uses conditioned solvers.
 - [Preserve Conservation Laws](../../skills/science-mode/principles/preserve-conservation-laws.md) monitors and asserts conservation of energy, mass, momentum, and norm invariants.
 - [Verify Analytical Limits](../../skills/science-mode/principles/verify-analytical-limits.md) verifies code against closed-form solutions, MMS, and order of convergence $O(h^p)$.
+- [Physics-Modular Architecture](../../skills/science-mode/principles/physics-modular-architecture.md) isolates pure physical laws, forces, and equations of state into stateless modules callable by any solver.
 
 The core principles decide how much to build and when to rethink the design:
 

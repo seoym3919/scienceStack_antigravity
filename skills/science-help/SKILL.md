@@ -101,7 +101,7 @@ The default answer is `/science-mode`, which runs most of the others when its st
 | Stop agents from repeating the same mistakes in this repo | [`/correct`](../correct/SKILL.md) |
 | Find their way around scienceStack | `/science-help` (or `/poteto-help`) |
 
-If a skill directory next to this one is missing from the table, read its frontmatter and route by its description. The 29 principles are bundled in `skills/science-mode/principles/`.
+If a skill directory next to this one is missing from the table, read its frontmatter and route by its description. The 30 principles are bundled in `skills/science-mode/principles/`.
 
 Close calls:
 
@@ -133,7 +133,7 @@ Without `/science-mode`, a phrase such as "babysit this pr" can start Cursor's o
 
 pstack has no planning skill. Cursor's Plan Mode works alongside it. For work that spans phases or stacked PRs, asking `/science-mode` for a plan runs the [Multi-phase plan playbook](../science-mode/playbooks/multi-phase-plan.md), which writes the plan and doesn't implement it. For a design question, the Prototype playbook or `/architect` settles it in code first.
 
-Principles are core guidelines that `/science-mode` reads and cites in its replies. The user rarely invokes one directly. They steer with the names instead, as in "apply prove it works. show me the real output." All 29 principles are bundled under `skills/science-mode/principles/` for token efficiency. [Guide page 8](../../docs/guide/08-principles.md) lists them.
+Principles are core guidelines that `/science-mode` reads and cites in its replies. The user rarely invokes one directly. They steer with the names instead, as in "apply prove it works. show me the real output." All 30 principles are bundled under `skills/science-mode/principles/` for token efficiency. [Guide page 8](../../docs/guide/08-principles.md) lists them.
 
 ## Fix a run that went wrong
 

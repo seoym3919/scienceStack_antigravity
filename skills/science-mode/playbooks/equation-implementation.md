@@ -32,6 +32,7 @@ Use this playbook when implementing a mathematical model, physical equation, dis
 
 ## 4. Implementation with Mathematical Docstrings
 - Write the implementation with comprehensive LaTeX docstrings (per **principle-equation-provenance**).
+- Enforce physics modularity (per **principle-physics-modular-architecture**): isolate physical laws, forces, and equations of state into dedicated, stateless modules (`physics/`), completely decoupled from time steppers, spatial grids, and simulation I/O so external solvers can call them directly.
 - Avoid magic constants: define physical constants ($\hbar$, $k_B$, $c$, $G$) in a dedicated physical constants module with cited CODATA values.
 - Enforce numerical stability (per **principle-numerical-stability-first**):
   - Use `logsumexp`, `expm1`, `log1p`, `hypot` where appropriate.

@@ -10,7 +10,7 @@ Given a mathematical formula, physical law, or algorithm from a paper or textboo
 
 ## Verification Checklist
 
-Execute this 6-point audit before declaring any scientific equation implementation complete:
+Execute this 7-point audit before declaring any scientific equation implementation complete:
 
 ### 1. LaTeX Formula Specification & Citation
 - Write down the exact theoretical continuous equation in standard LaTeX notation.
@@ -51,3 +51,7 @@ Execute this 6-point audit before declaring any scientific equation implementati
 - Write a unit test comparing code output against an exact analytical benchmark or closed-form solution.
 - Use explicit tolerance bounds: `np.testing.assert_allclose(actual, expected, rtol=1e-12, atol=1e-14)`.
 - Never use loose tolerances without a mathematical justification based on floating-point truncation.
+
+### 7. Physics Modularity & Decoupling
+- Check that pure physics operators (equations of state, forces, collision terms, rate equations) are isolated in standalone, stateless functions or modules (`physics/`).
+- Verify that external solvers or other codes can import and call the physics routines directly without depending on simulation loops, time steppers, or file I/O.

@@ -235,10 +235,10 @@ for scientific and mathematical work, scienceStack ships [Theory Reviewer](./age
 
 ## principles
 
-twenty-nine core and scientific principles bundled in `skills/science-mode/principles/`. `science-mode` indexes them inline and reads that index at task start. Consolidating them into `principles/` saves over 1,300 tokens in the system prompt on every turn while keeping them fully accessible.
+thirty core and scientific principles bundled in `skills/science-mode/principles/`. `science-mode` indexes them inline and reads that index at task start. Consolidating them into `principles/` saves over 1,300 tokens in the system prompt on every turn while keeping them fully accessible.
 
 <details>
-<summary>all twenty-nine principles</summary>
+<summary>all thirty principles</summary>
 
 | principle | group | rule |
 |---|---|---|
@@ -247,6 +247,7 @@ twenty-nine core and scientific principles bundled in `skills/science-mode/princ
 | [preserve-conservation-laws](./skills/science-mode/principles/preserve-conservation-laws.md) | science | Explicitly track and assert physical invariants (energy, mass, momentum, probability norm) across steps. |
 | [numerical-stability-first](./skills/science-mode/principles/numerical-stability-first.md) | science | Eliminate catastrophic cancellation; guard against division by zero; ban `inv(A) @ b`; use conditioned solvers. |
 | [verify-analytical-limits](./skills/science-mode/principles/verify-analytical-limits.md) | science | Verify code against exact closed-form solutions or Method of Manufactured Solutions (MMS) with $O(h^p)$ convergence. |
+| [physics-modular-architecture](./skills/science-mode/principles/physics-modular-architecture.md) | science | Decompose code by physics; isolate pure physical laws, forces, and equations of state into stateless modules callable by any solver. |
 | [laziness-protocol](./skills/science-mode/principles/laziness-protocol.md) | core | Bias toward deletion and the smallest change that solves the problem. |
 | [foundational-thinking](./skills/science-mode/principles/foundational-thinking.md) | core | Apply before writing logic: choosing core types and data structures, sequencing scaffold-vs-feature work, asking what concurrent actors share. Get the data structures right so downstream code becomes obvious. |
 | [redesign-from-first-principles](./skills/science-mode/principles/redesign-from-first-principles.md) | core | Redesign as if the requirement had been a foundational assumption from day one, instead of bolting it on. |
