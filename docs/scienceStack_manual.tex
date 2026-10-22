@@ -1,0 +1,828 @@
+\documentclass[11pt,a4paper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{geometry}
+\geometry{margin=1in, headheight=14pt}
+\usepackage{amsmath,amssymb,amsfonts,bm}
+\usepackage{booktabs,longtable,array,tabularx}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage[most]{tcolorbox}
+
+% Color definitions
+\definecolor{primarynavy}{RGB}{11, 37, 69}
+\definecolor{secondaryblue}{RGB}{19, 64, 116}
+\definecolor{accentteal}{RGB}{17, 94, 89}
+\definecolor{codegray}{RGB}{245, 247, 250}
+\definecolor{codeframe}{RGB}{203, 213, 225}
+\definecolor{textdark}{RGB}{15, 23, 42}
+\definecolor{alertred}{RGB}{185, 28, 28}
+\definecolor{successgreen}{RGB}{21, 128, 61}
+
+% Hyperref configuration
+\hypersetup{
+    colorlinks=true,
+    linkcolor=secondaryblue,
+    citecolor=accentteal,
+    urlcolor=secondaryblue,
+    pdfauthor={scienceStack Engineering Group},
+    pdftitle={scienceStack: Rigorous Agentic Engineering and Theoretical Computing in Antigravity},
+    pdfsubject={Scientific Computing, Autonomous AI Agents, Equation Verification},
+    pdfkeywords={Antigravity, scienceStack, numerical stability, equation provenance, golden benchmarks}
+}
+
+% Code Listing configuration
+\lstset{
+    backgroundcolor=\color{codegray},
+    basicstyle=\small\ttfamily\color{textdark},
+    breaklines=true,
+    breakatwhitespace=true,
+    frame=single,
+    rulecolor=\color{codeframe},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=8pt,
+    captionpos=b,
+    keywordstyle=\color{secondaryblue}\bfseries,
+    commentstyle=\color{accentteal}\itshape,
+    stringstyle=\color{alertred},
+    showstringspaces=false,
+    tabsize=2
+}
+
+% Page styling
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{secondaryblue}\textsf{\nouppercase{\leftmark}}}
+\fancyhead[R]{\small\color{secondaryblue}\textsf{scienceStack Manual (v0.15.29)}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+
+% Section title formats
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\color{primarynavy}}{\chaptertitlename\ \thechapter}{16pt}{\Huge}
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{primarynavy}}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{secondaryblue}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries\color{accentteal}}{\thesubsubsection}{1em}{}
+
+% Custom tcolorbox environments
+\newtcolorbox{principlebox}[1]{
+    colback=accentteal!5!white,
+    colframe=accentteal,
+    fonttitle=\bfseries\sffamily,
+    title={Scientific Principle: #1},
+    enhanced,
+    attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    boxed title style={colback=accentteal},
+    sharp corners,
+    boxrule=1pt,
+    top=8pt,
+    bottom=8pt
+}
+
+\newtcolorbox{directivebox}[1]{
+    colback=primarynavy!5!white,
+    colframe=primarynavy,
+    fonttitle=\bfseries\sffamily,
+    title={Antigravity Runtime Directive: #1},
+    enhanced,
+    attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    boxed title style={colback=primarynavy},
+    sharp corners,
+    boxrule=1pt,
+    top=8pt,
+    bottom=8pt
+}
+
+\newtcolorbox{warningbox}[1]{
+    colback=alertred!5!white,
+    colframe=alertred,
+    fonttitle=\bfseries\sffamily,
+    title={Numerical Safety Alert: #1},
+    enhanced,
+    attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    boxed title style={colback=alertred},
+    sharp corners,
+    boxrule=1pt,
+    top=8pt,
+    bottom=8pt
+}
+
+\begin{document}
+
+% -------------------------------------------------------------
+% Title Page
+% -------------------------------------------------------------
+\begin{titlepage}
+    \centering
+    \vspace*{1.5cm}
+    
+    {\Huge \bfseries \color{primarynavy} scienceStack}\\[0.4cm]
+    {\Large \bfseries \color{secondaryblue} Rigorous Agentic Engineering \& Theoretical Computing}\\[0.2cm]
+    {\large \textsf{A Deep Integration and Operational Manual for Google Antigravity}}\\[1.5cm]
+    
+    \rule{\linewidth}{1.5pt}\\[0.6cm]
+    {\large \textbf{Plugin Specification \& Operational Guide}}\\[0.2cm]
+    {\normalsize Version 0.15.29 --- October 2026}\\[0.6cm]
+    \rule{\linewidth}{1.5pt}\\[2.5cm]
+    
+    \begin{minipage}{0.48\textwidth}
+        \begin{flushleft} \large
+            \textbf{Core Architecture:}\\
+            64 Specialized Skills\\
+            3 Dedicated Subagents\\
+            1 Unified Runtime Rule
+        \end{flushleft}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \begin{flushright} \large
+            \textbf{Theoretical Domains:}\\
+            PDEs, CFD, Finite Elements\\
+            Stiff ODE Kinetics, MD\\
+            Quantum Systems, Linear Algebra
+        \end{flushright}
+    \end{minipage}
+    
+    \vfill
+    
+    {\small \textsf{Adapted from the foundational \texttt{pstack} architecture by Lauren Tan (poteto) at Cursor.}\\
+    \textsf{Expanded for rigorous theoretical fidelity, dimensional analysis, and numerical verification in Google Antigravity.}}\\[0.8cm]
+\end{titlepage}
+
+% -------------------------------------------------------------
+% Front Matter
+% -------------------------------------------------------------
+\pagenumbering{roman}
+\tableofcontents
+\newpage
+
+\section*{Executive Summary}
+\addcontentsline{toc}{chapter}{Executive Summary}
+
+In traditional software engineering, artificial intelligence coding assistants often generate superficial code that satisfies local syntax tests but fails under boundary conditions. In \textbf{computational science and engineering}, the cost of generated ``slop'' is catastrophic. A flipped negative sign in a Laplacian diffusion operator turns a dissipative physical process into an exponentially explosive numerical instability. A subtle catastrophic cancellation in floating-point subtraction silently destroys the condition number of a linear solve. An unverified normalization constant renders quantum wavefunctions non-unitary.
+
+\textbf{scienceStack} is an Antigravity-native agentic framework engineered specifically to eliminate ungrounded code in scientific and mathematical computing. Originating from the battle-tested \texttt{pstack} architecture created by Lauren Tan at Cursor, \texttt{scienceStack} completely re-architects the agent pairing paradigm for Google Antigravity:
+\begin{enumerate}[itemsep=2pt]
+    \item \textbf{Theoretical Provenance}: Every formula implemented by an agent must be explicitly derived in LaTeX docstrings, cite canonical literature equations, and define coordinate metrics and sign conventions.
+    \item \textbf{Dimensional Discipline}: Every equation is verified for physical dimension matching ($[\mathrm{LHS}] = [\mathrm{RHS}]$), and transcendental arguments ($\exp, \ln, \sin$) are enforced to be dimensionless.
+    \item \textbf{Conservation Law Guarantees}: Numerical schemes are required to track and conserve physical invariants (energy, mass, momentum, probability norm) within specified tolerance thresholds.
+    \item \textbf{Numerical Stability First}: The framework strictly bans naive mathematical implementations (e.g., explicit matrix inversion $\mathbf{A}^{-1}\mathbf{b}$, unscaled floating-point differences) in favor of conditioned algorithms (\texttt{solve(A, b)}, \texttt{logsumexp}, \texttt{expm1}).
+    \item \textbf{Analytical Limits \& Golden Datasets}: Every scientific kernel must be validated against closed-form exact solutions, the Method of Manufactured Solutions (MMS), or canonical industry benchmark datasets (e.g., Sod shock tube, Taylor-Green vortex, Robertson stiff ODEs).
+\end{enumerate}
+
+With 64 automated skills, three specialized subagent personas (\texttt{science-master}, \texttt{theory-reviewer}, and \texttt{comment-master}), and native Antigravity asynchronous orchestration, \texttt{scienceStack} enables fearless parallel development while upholding the mathematical rigor demanded by modern science.
+
+\newpage
+\pagenumbering{arabic}
+
+% -------------------------------------------------------------
+% Chapter 1: Introduction and Philosophy
+% -------------------------------------------------------------
+\chapter{System Overview and Core Philosophy}
+
+\section{The Crisis of Slop in Scientific Computing}
+
+Modern Large Language Models (LLMs) excel at generating idiomatic code snippets, web components, and routine test scripts. However, when applied to computational physics, numerical linear algebra, biomechanics, or quantum chemistry, unassisted LLMs exhibit severe failure modes:
+\begin{itemize}[itemsep=4pt]
+    \item \textbf{Hallucinated Equations}: Formulating plausible-looking discrete approximations that lack theoretical backing or violate fundamental symmetries.
+    \item \textbf{Catastrophic Floating-Point Cancellation}: Evaluating expressions like $f(x) = \sqrt{x+1} - \sqrt{x}$ or $(1 - \cos x)$ for small $x$ without using Taylor series or conditioned algebraic identities, leading to severe loss of significance.
+    \item \textbf{Inversion of Ill-Conditioned Matrices}: Emitting $\mathbf{x} = \mathbf{A}^{-1}\mathbf{b}$ via \texttt{numpy.linalg.inv(A) @ b} instead of direct LU/Cholesky/QR solvers, squaring the matrix condition number $\kappa(\mathbf{A})$.
+    \item \textbf{Violation of Noetherian Invariants}: Implementing time-integration schemes (such as standard forward Euler) for conservative Hamiltonian systems, causing artificial energy blowup over time.
+    \item \textbf{Narrative Noise in Codebases}: Polluting clean mathematical code with conversational comments, redundant stubs, and defensive workarounds that obscure algorithmic clarity.
+\end{itemize}
+
+\section{The scienceStack Philosophy}
+
+\texttt{scienceStack} operates on a single immutable maxim:
+\begin{center}
+    \textbf{\Large ``If you want to go fast, go deep first.''}
+\end{center}
+Throughput without theoretical accuracy is counterproductive. Generating ten thousand lines of unverified simulation code produces negative value if the underlying discretization violates conservation laws. 
+
+\subsection{Fearless Parallelism}
+In traditional development, delegating work to multiple concurrent background agents leads to merge conflicts, architectural drift, and silent bugs. \texttt{scienceStack} makes parallelism safe by establishing strict entry contracts, formal verification suites, and autonomous review panels:
+\begin{itemize}
+    \item \textbf{Isolated Workspaces}: Concurrent subagents execute inside isolated Git branches or worktrees (\texttt{Workspace: "branch"}).
+    \item \textbf{Theoretical Gatekeepers}: No scientific kernel is merged into the primary branch until audited by the independent \texttt{theory-reviewer} subagent.
+    \item \textbf{Objective Golden Benchmarks}: Work is considered complete only when empirical convergence rates $O(h^p)$ or relative $L_2$ error thresholds against reference datasets are demonstrated.
+\end{itemize}
+
+\section{Architectural Heritage: From pstack to scienceStack}
+
+The foundation of \texttt{scienceStack} is the \texttt{pstack} plugin developed by Lauren Tan for Cursor. \texttt{pstack} pioneered autonomous subagent orchestration, dynamic playbook matching, and strict anti-slop guidelines.
+
+In \texttt{scienceStack\_antigravity}, this framework has been completely re-engineered for the Google Antigravity runtime and specialized for scientific and mathematical computing:
+\begin{table}[h!]
+\centering
+\small
+\begin{tabularx}{\textwidth}{p{3.5cm} p{5.5cm} X}
+\toprule
+\textbf{Component} & \textbf{Original pstack (Cursor)} & \textbf{scienceStack (Antigravity)} \\
+\midrule
+Primary Orchestrator & \texttt{poteto-mode} & \texttt{science-mode} \\
+Worker Delegate & \texttt{poteto-agent} & \texttt{science-master} \\
+Comment Reviewer & \texttt{comment-sicko} & \texttt{comment-master} \\
+Theoretical Auditor & \textit{None} & \texttt{theory-reviewer} \\
+Subagent Dispatch & Synchronous / Cursor \texttt{Task} & Asynchronous \texttt{invoke\_subagent} \\
+Decision Logging & Local TSV / commit notes & Antigravity Brain Artifacts \\
+Scientific Playbooks & Generic feature/bugfix & \texttt{equation-implementation}, \texttt{numerical-verification} \\
+Benchmark Suite & Generic testing & \texttt{golden-dataset-benchmark} \\
+\bottomrule
+\end{tabularx}
+\caption{Evolution from Cursor \texttt{pstack} to Antigravity \texttt{scienceStack}.}
+\label{tab:evolution}
+\end{table}
+
+% -------------------------------------------------------------
+% Chapter 2: Installation and Configuration
+% -------------------------------------------------------------
+\chapter{Installation, Setup, and Model Routing}
+
+\section{Installing the Plugin}
+
+\texttt{scienceStack} conforms to the Agent Plugins 1.0.0 Specification. It can be installed globally into Antigravity or linked directly into project workspaces.
+
+\subsection{Global Installation}
+To install \texttt{scienceStack} globally across all Antigravity sessions on your machine, execute:
+\begin{lstlisting}[language=bash]
+# Validate strict compliance first
+agy plugin validate /home/seo3919/AI_skills/scienceStack_antigravity --strict
+
+# Install into Antigravity CLI plugin engine
+agy plugin install /home/seo3919/AI_skills/scienceStack_antigravity
+\end{lstlisting}
+
+\subsection{Verification of Installed Components}
+Confirm that the plugin and its agents are active:
+\begin{lstlisting}[language=bash]
+agy plugin list
+# Expected output:
+# - sciencestack (enabled, 0.15.29)
+#   Components: 64 skills, 3 agents, 1 rule
+
+agy agent
+# Expected output:
+# Available agents:
+# comment-master
+# science-master
+# theory-reviewer
+\end{lstlisting}
+
+\section{Model Configuration and Reasoning Budgets}
+
+\subsection{The Role-Based Model Architecture}
+Scientific workflows require heterogeneous cognitive capabilities. Compiling numerical kernels, writing unit tests, and verifying syntax requires fast, low-latency execution. Conversely, proving coordinate transformation invariance, analyzing ill-conditioned eigenspaces, and architecting modular solver pipelines requires maximum reasoning depth.
+
+\texttt{scienceStack} defines clear roles mapped to Antigravity model tiers:
+\begin{table}[h!]
+\centering
+\small
+\begin{tabularx}{\textwidth}{p{3.2cm} p{3.5cm} p{3cm} X}
+\toprule
+\textbf{Role} & \textbf{Default Model} & \textbf{Antigravity Tier} & \textbf{Typical Tasks} \\
+\midrule
+\texttt{code} & \texttt{gemini-3.8-flash-high} & \texttt{Model: "flash"} & Kernels, MMS tests, refactoring, benchmark runners \\
+\texttt{judgment} & \texttt{claude-opus-4-6-thinking} & \texttt{Model: "pro"} & Architecture, mathematical proofs, dimensional audits \\
+\texttt{theory-reviewer} & \texttt{claude-opus-4-6-thinking} & \texttt{Model: "pro"} & Equation verification, sign checking, invariant bounds \\
+\texttt{comment-master} & \texttt{gemini-3.8-flash-high} & \texttt{Model: "flash"} & Dead code removal, docstring formatting \\
+\texttt{fast-worker} & \texttt{gemini-3.8-flash-medium} & \texttt{Model: "flash\_lite"} & Linting, single-fixture test loops, syntax checks \\
+\bottomrule
+\end{tabularx}
+\caption{Model tier mapping in Antigravity.}
+\label{tab:models}
+\end{table}
+
+\subsection{Interactive Setup with /setup-sciencestack}
+Run the interactive setup skill to configure model preferences and reasoning budgets:
+\begin{lstlisting}
+/setup-sciencestack
+\end{lstlisting}
+The skill queries the available models in your Antigravity environment, prompts for your target reasoning budget (\texttt{small}, \texttt{medium}, \texttt{large}, \texttt{unlimited}), and persists the configuration rule to:
+\begin{center}
+    \texttt{\textasciitilde/.gemini/config/rules/pstack-models.md}
+\end{center}
+Any role set to \texttt{auto} or \texttt{inherit-parent} dynamically inherits the parent chat session's active model.
+
+% -------------------------------------------------------------
+% Chapter 3: The Specialized Subagent Ecosystem
+% -------------------------------------------------------------
+\chapter{The Specialized Subagent Ecosystem}
+
+\section{Overview of Agent Roles}
+
+Antigravity executes subagents asynchronously in background worker processes. \texttt{scienceStack} provides three purpose-built subagent personas that interact to implement, audit, and clean scientific software.
+
+\begin{figure}[h!]
+\centering
+\begin{tcolorbox}[colback=white,colframe=secondaryblue,title=\textbf{The scienceStack Subagent Triad}]
+\centering
+\textbf{Primary Orchestrator} (\texttt{/science-mode})\\[0.2cm]
+$\Downarrow$ Spawns Worker Delegate\\[0.2cm]
+\textbf{\texttt{science-master}}\\[0.1cm]
+{\small (Reads full principles index, implements equations in isolated Git worktree)}\\[0.3cm]
+$\swarrow$\hspace{3cm}$\searrow$\\[0.2cm]
+\textbf{\texttt{theory-reviewer}} \hspace{2cm} \textbf{\texttt{comment-master}}\\[0.1cm]
+{\small (Audits LaTeX, signs, dimensions, invariants)} \hspace{0.5cm} {\small (Eliminates conversational noise and rot)}
+\end{tcolorbox}
+\caption{Interaction model among scienceStack subagents.}
+\end{figure}
+
+\section{science-master: The Scientific Implementation Delegate}
+\textbf{File}: \texttt{agents/science-master.md}\\
+\textbf{Invocation}: \texttt{invoke\_subagent(\{ TypeName: "science-master", Role: "...", Prompt: "..." \})}
+
+\texttt{science-master} is the rigorous implementation engine. Whenever \texttt{science-mode} delegates a concrete coding assignment—such as implementing a finite difference stencil, constructing a sparse stiffness matrix, or writing an integration harness—it spawns \texttt{science-master}.
+
+\begin{directivebox}{science-master Operational Protocol}
+Before executing any file write or command, \texttt{science-master} is mandated to:
+\begin{enumerate}
+    \item Read \texttt{skills/science-mode/SKILL.md} in full, including its inline Principles index.
+    \item Check out an isolated branch (\texttt{Workspace: "branch"}) to protect the main working directory.
+    \item Formulate continuous equations in LaTeX before implementing discrete algorithms.
+    \item Run test fixtures locally and return a consolidated diff summary to the parent orchestrator.
+\end{enumerate}
+\end{directivebox}
+
+\section{theory-reviewer: The Mathematical Auditor}
+\textbf{File}: \texttt{agents/theory-reviewer.md}\\
+\textbf{Invocation}: \texttt{invoke\_subagent(\{ TypeName: "theory-reviewer", Model: "pro", ... \})}
+
+\texttt{theory-reviewer} is a specialized, read-only auditor that acts as an adversarial theoretical reviewer. It never writes production code; its sole responsibility is auditing proposed diffs against governing physical laws and equations.
+
+\subsection{The 6-Point Theoretical Audit Checklist}
+When auditing a diff, \texttt{theory-reviewer} executes a rigorous verification pass:
+\begin{enumerate}
+    \item \textbf{Continuous Equation Provenance}: Does every mathematical function specify its continuous formulation in LaTeX in docstrings, citing the textbook or paper equation number?
+    \item \textbf{Coordinate System \& Sign Conventions}: Are spatial metrics ($g_{ij}$), coordinate systems (Cartesian, cylindrical, spherical), and sign conventions documented? For instance, in diffusion:
+    \begin{equation}
+        \frac{\partial u}{\partial t} = +\alpha \nabla^2 u \quad (\text{stable diffusion, } \alpha > 0)
+    \end{equation}
+    A negative sign would represent reverse-time anti-diffusion, causing ill-posed exponential growth.
+    \item \textbf{Dimensional Homogeneity}: Do physical units match on both sides of every assignment? Are arguments to transcendental functions strictly dimensionless:
+    \begin{equation}
+        \exp\left(-\frac{E_a}{k_B T}\right) \quad \text{where } \left[\frac{E_a}{k_B T}\right] = 1
+    \end{equation}
+    \item \textbf{Tensor and Index Order}: Are multi-dimensional arrays adhering to explicit indexing standards (row-major vs column-major, Einstein summation)?
+    \item \textbf{Normalization Constants}: Are integral normalizations preserved? E.g., for Fourier transforms:
+    \begin{equation}
+        \hat{f}(\xi) = \int_{-\infty}^{\infty} f(x) e^{-2\pi i x \xi} dx \implies f(x) = \int_{-\infty}^{\infty} \hat{f}(\xi) e^{2\pi i x \xi} d\xi
+    \end{equation}
+    Or probability densities: $\int_{\Omega} |\psi(\mathbf{x}, t)|^2 d\mathbf{x} \equiv 1$.
+    \item \textbf{Physical Invariant Conservation}: Does the discrete formulation preserve Noetherian invariants (mass, energy, momentum, symplecticity) over simulation time?
+\end{enumerate}
+
+\section{comment-master: Eliminating Commentary Rot}
+\textbf{File}: \texttt{agents/comment-master.md}\\
+\textbf{Invocation}: \texttt{invoke\_subagent(\{ TypeName: "comment-master", Model: "flash", ... \})}
+
+Comments that narrate the obvious, defend sloppy design, or preserve dead code degrade repository quality. \texttt{comment-master} conducts automated line-by-line comment sweeps:
+\begin{itemize}
+    \item \textbf{Deleted}: Narrative voice (``Here we loop over nodes''), apologies (``Hack for now, fix later''), dead commented-out code blocks, obvious type restatements.
+    \item \textbf{Preserved}: LaTeX equation docstrings, literature citations, coordinate/sign definitions, non-obvious mathematical invariants, and hardware-specific synchronization guards.
+\end{itemize}
+
+% -------------------------------------------------------------
+% Chapter 4: The Five Core Scientific Principles
+% -------------------------------------------------------------
+\chapter{The Five Core Scientific Principles}
+
+\section{Principle 1: Equation Provenance and Formal Documentation}
+\textbf{Skill}: \texttt{skills/principle-equation-provenance/SKILL.md}
+
+Every mathematical function or kernel in a scientific codebase must declare its provenance. Code without equation provenance is untestable against theory.
+
+\begin{principlebox}{Equation Provenance}
+Every scientific implementation must:
+\begin{enumerate}
+    \item State the continuous governing equation in LaTeX within the function docstring.
+    \item Cite the source paper or textbook with explicit chapter, page, or equation number.
+    \item Document coordinate system, metric tensor, and sign conventions.
+\end{enumerate}
+\end{principlebox}
+
+\subsection{Code Comparison: Bad vs. Compliant}
+\begin{lstlisting}[language=Python, caption={Non-compliant ungrounded function}]
+# Bad: No provenance, ambiguous variables, undocumented formula
+def calc_stress(e, nu, E):
+    return E / ((1 + nu) * (1 - 2*nu)) * ((1 - nu) * e[0] + nu * e[1])
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={Compliant function with Equation Provenance}]
+def plane_strain_normal_stress(
+    strain_xx: float, 
+    strain_yy: float, 
+    youngs_modulus: float, 
+    poissons_ratio: float
+) -> float:
+    r"""
+    Compute normal stress \sigma_{xx} under isotropic linear elastic plane strain.
+
+    Governing Continuous Equation:
+    \begin{equation}
+        \sigma_{xx} = \frac{E}{(1+\nu)(1-2\nu)} \left[ (1-\nu)\varepsilon_{xx} + \nu\varepsilon_{yy} \right]
+    \end{equation}
+
+    Reference:
+        Timoshenko, S. P., & Goodier, J. N. (1970). "Theory of Elasticity", 
+        3rd ed., McGraw-Hill, Chapter 2, Eq. (11.3), p. 34.
+
+    Assumptions & Conventions:
+        - Coordinate System: Cartesian (x, y, z)
+        - Condition: Plane strain (\varepsilon_{zz} = \gamma_{xz} = \gamma_{yz} = 0)
+        - Sign Convention: Tensile stress is positive (> 0).
+    """
+    E, nu = youngs_modulus, poissons_ratio
+    coeff = E / ((1.0 + nu) * (1.0 - 2.0 * nu))
+    return coeff * ((1.0 - nu) * strain_xx + nu * strain_yy)
+\end{lstlisting}
+
+\section{Principle 2: Dimensional Discipline \& Scaling}
+\textbf{Skill}: \texttt{skills/principle-dimensional-discipline/SKILL.md}
+
+Physical quantities possess dimensions in fundamental SI units ($[M], [L], [T], [\Theta], [I]$). Dimensional mismatch is proof of a mathematical bug.
+
+\begin{principlebox}{Dimensional Discipline}
+\begin{enumerate}
+    \item Verify dimensional homogeneity: $[\mathrm{LHS}] = [\mathrm{RHS}]$ for every physical relation.
+    \item Nondimensionalize equations using characteristic scales prior to numerical integration:
+    \begin{equation}
+        x^* = \frac{x}{L_0}, \quad t^* = \frac{t U_0}{L_0}, \quad p^* = \frac{p}{\rho_0 U_0^2}
+    \end{equation}
+    \item Verify that arguments to transcendental functions ($\exp, \ln, \sin, \cos$) are strictly dimensionless ($[f(\arg)] = 1 \implies [\arg] = 1$).
+\end{enumerate}
+\end{principlebox}
+
+\section{Principle 3: Preservation of Physical Conservation Laws}
+\textbf{Skill}: \texttt{skills/principle-preserve-conservation-laws/SKILL.md}
+
+According to Noether's theorem, every continuous physical symmetry corresponds to a conserved invariant:
+\begin{itemize}
+    \item Time translation invariance $\implies$ Energy conservation ($\frac{dE}{dt} = 0$).
+    \item Spatial translation invariance $\implies$ Linear momentum conservation ($\frac{d\mathbf{p}}{dt} = \mathbf{0}$).
+    \item Spatial rotational invariance $\implies$ Angular momentum conservation ($\frac{d\mathbf{L}}{dt} = \mathbf{0}$).
+    \item Phase invariance (gauge symmetry) $\implies$ Charge / probability norm conservation ($\int |\psi|^2 dx = 1$).
+\end{itemize}
+
+Standard dissipative discrete schemes (such as implicit backward Euler) artificially dissipate energy, while explicit schemes often artificially inject energy. \texttt{scienceStack} mandates \textbf{invariant tracking}:
+\begin{equation}
+    \delta(t) = \frac{|I(t) - I(0)|}{|I(0)|} \le \tau_{\mathrm{drift}}
+\end{equation}
+
+\section{Principle 4: Numerical Stability First}
+\textbf{Skill}: \texttt{skills/principle-numerical-stability-first/SKILL.md}
+
+Numerical algorithms must remain stable in floating-point arithmetic ($\text{IEEE-754}$). Premature vectorization must never compromise numerical conditioning.
+
+\begin{warningbox}{Catastrophic Cancellation}
+Subtracting two nearly equal floating-point numbers $a \approx b$ causes severe cancellation, wiping out significant bits:
+\begin{equation}
+    \text{Error}_{\text{rel}} \approx \frac{\epsilon_{\text{mach}}}{|a - b|}
+\end{equation}
+Use conditioned mathematical identities or special functions:
+\begin{itemize}
+    \item Replace $1 - \cos x$ with $2 \sin^2(x/2)$ for $|x| \ll 1$.
+    \item Replace $\ln(1 + x)$ with \texttt{math.log1p(x)}.
+    \item Replace $e^x - 1$ with \texttt{math.expm1(x)}.
+    \item Replace $\ln\sum e^{x_i}$ with \texttt{scipy.special.logsumexp(x)}.
+\end{itemize}
+\end{warningbox}
+
+\begin{warningbox}{Strict Matrix Inversion Prohibition}
+Never compute $\mathbf{x} = \mathbf{A}^{-1}\mathbf{b}$ via \texttt{numpy.linalg.inv(A) @ b}. Matrix inversion introduces an operation count of $2n^3$ flops and squares the numerical condition number:
+\begin{equation}
+    \kappa(\mathbf{A}) = \|\mathbf{A}\| \|\mathbf{A}^{-1}\|
+\end{equation}
+Always compute linear solves via direct factorization or Krylov iterative methods:
+\begin{lstlisting}[language=Python]
+# FORBIDDEN:
+x = np.linalg.inv(A) @ b
+
+# MANDATED:
+x = np.linalg.solve(A, b)
+# Or for symmetric positive definite matrices:
+# L = scipy.linalg.cho_factor(A); x = scipy.linalg.cho_solve(L, b)
+\end{lstlisting}
+\end{warningbox}
+
+\section{Principle 5: Verification Against Analytical Limits and Golden Benchmarks}
+\textbf{Skill}: \texttt{skills/principle-verify-analytical-limits/SKILL.md}
+
+Unit tests asserting that code ``runs without throwing an exception'' are insufficient for scientific software. Verification requires rigorous mathematical convergence:
+\begin{enumerate}
+    \item \textbf{Analytical Closed-Form Solutions}: Validate against known exact solutions under simplified boundary conditions.
+    \item \textbf{Method of Manufactured Solutions (MMS)}: For nonlinear or coupled PDEs without closed-form solutions, manufacture an analytical solution $u_{\text{exact}}(\mathbf{x}, t)$, substitute into the PDE to derive an analytical source term $f_{\text{mms}}$, and verify that the discrete solver converges to $u_{\text{exact}}$ at the theoretical asymptotic rate $O(h^p)$:
+    \begin{equation}
+        p = \frac{\ln(E_{h_1} / E_{h_2})}{\ln(h_1 / h_2)}
+    \end{equation}
+    \item \textbf{Golden Datasets}: Validate against community-accepted experimental or high-resolution numerical datasets stored in \texttt{tests/golden/}.
+\end{enumerate}
+
+% -------------------------------------------------------------
+% Chapter 5: Primary Scientific Skills and Playbooks
+% -------------------------------------------------------------
+\chapter{Scientific Skills and Playbooks}
+
+\section{The Master Controller: /science-mode}
+
+\texttt{/science-mode} is the entry point for all non-trivial scientific tasks. When invoked with a user objective, it:
+\begin{enumerate}
+    \item Analyzes the prompt and classifies the intent into a specialized playbook.
+    \item Initializes an in-context todo list or Brain Artifact.
+    \item Evaluates prerequisites (models, verification harnesses, git branch state).
+    \item Spawns subagents (\texttt{science-master}, \texttt{theory-reviewer}, \texttt{comment-master}) as each step requires.
+    \item Collects empirical evidence before declaring completion.
+\end{enumerate}
+
+\section{Dedicated Scientific Skills}
+
+\subsection{/scientific-equation-verifier}
+\textbf{Directory}: \texttt{skills/scientific-equation-verifier/SKILL.md}
+
+Performs an exhaustive audit of an existing codebase or proposed diff against mathematical and physical principles. 
+
+\textbf{Usage}:
+\begin{lstlisting}
+/scientific-equation-verifier verify the stress-strain constitutive updates in elasticity.py
+\end{lstlisting}
+
+\subsection{/numerical-stability-audit}
+\textbf{Directory}: \texttt{skills/numerical-stability-audit/SKILL.md}
+
+Audits numerical algorithms for floating-point vulnerabilities:
+\begin{itemize}
+    \item Matrix condition number estimates ($\kappa_2(\mathbf{A})$).
+    \item Detects explicit matrix inversions (\texttt{np.linalg.inv}).
+    \item Identifies unguarded divisions by zero in geometric and kinetic factors.
+    \item Analyzes stiff ordinary differential equations (ODEs) to ensure appropriate implicit integrators (e.g., Radau IIA, BDF) are selected over explicit Runge-Kutta.
+\end{itemize}
+
+\subsection{/golden-dataset-benchmark}
+\textbf{Directory}: \texttt{skills/golden-dataset-benchmark/SKILL.md}
+
+Manages the acquisition, generation, and verification of canonical test problems across major scientific disciplines.
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabularx}{\textwidth}{p{3.2cm} p{4.2cm} X}
+\toprule
+\textbf{Domain} & \textbf{Canonical Benchmark} & \textbf{Validation Metric} \\
+\midrule
+Computational Fluid Dynamics (CFD) & 1D Sod Shock Tube & $L_1$ and $L_2$ norm vs. exact Riemann solver; shock position $\Delta x < 0.5 \Delta x_{\text{cell}}$ \\
+CFD / Turbulence & 2D Taylor-Green Vortex & Kinetic energy decay rate $dK/dt = -2\nu \Omega$ \\
+Solid Mechanics (FEM) & Cook's Membrane & Vertical tip deflection $u_y$ at $(48, 60)$ under mesh refinement \\
+Chemical Kinetics & Robertson Reaction System & Mass conservation $|y_1 + y_2 + y_3 - 1.0| < 10^{-12}$; stiffness ratio $\approx 10^9$ \\
+Molecular Dynamics & Lennard-Jones Cluster & Microcanonical energy drift $|\Delta E(t)/E_0| < 10^{-5}$ over $10^5$ steps \\
+Quantum Mechanics & 1D Harmonic Oscillator & Energy eigenvalue error $|E_n - \hbar\omega(n + 1/2)| < 10^{-8}$ \\
+\bottomrule
+\end{tabularx}
+\caption{Canonical benchmark problems supported by /golden-dataset-benchmark.}
+\label{tab:benchmarks}
+\end{table}
+
+\section{Specialized Scientific Playbooks}
+
+Inside \texttt{skills/science-mode/playbooks/}, \texttt{scienceStack} ships specialized playbooks that structure the lifecycle of scientific implementations:
+
+\subsection{Playbook: equation-implementation}
+\textbf{Path}: \texttt{skills/science-mode/playbooks/equation-implementation.md}
+\begin{enumerate}
+    \item \textbf{Theory Extraction}: Isolate the governing continuous differential/integral equations, boundary conditions, and sign conventions from literature.
+    \item \textbf{Coordinate \& Tensor Settlement}: Settle metric components, array layouts, and dimensionless scaling factors.
+    \item \textbf{Analytical Limit Definition}: Formulate exact asymptotic solutions or MMS test fixtures.
+    \item \textbf{Numerical Implementation}: Spawn \texttt{science-master} to write clean, conditioned code without explicit inversions.
+    \item \textbf{Theoretical Audit}: Spawn \texttt{theory-reviewer} to verify signs, normalizations, and LaTeX provenance.
+    \item \textbf{Convergence Testing}: Prove grid convergence $O(h^p)$ against the analytical limit.
+\end{enumerate}
+
+\subsection{Playbook: numerical-verification}
+\textbf{Path}: \texttt{skills/science-mode/playbooks/numerical-verification.md}
+\begin{enumerate}
+    \item \textbf{Refinement Hierarchy}: Construct grids with cell sizes $h, h/2, h/4, h/8$.
+    \item \textbf{Discrete Error Computation}: Measure $L_2$ error norm $E(h) = \|u_h - u_{\text{exact}}\|_{L_2}$.
+    \item \textbf{Empirical Order Calculation}: Compute convergence slope $p = \frac{\ln(E_{2h}/E_h)}{\ln 2}$.
+    \item \textbf{Conservation Monitoring}: Record invariant drift $\Delta I(t)$ across simulation duration.
+    \item \textbf{Artifact Generation}: Output convergence tables and error plots to Brain Artifacts.
+\end{enumerate}
+
+% -------------------------------------------------------------
+% Chapter 6: Practical Tutorials and Workflows
+% -------------------------------------------------------------
+\chapter{End-to-End Practical Tutorials}
+
+\section{Tutorial 1: Implementing a Stiff Kinetic System (Robertson)}
+
+\subsection{Problem Statement}
+The Robertson chemical reaction model represents an autocatalytic reaction with extreme timescale separation (stiffness ratio $\approx 10^9$). The governing system is:
+\begin{align}
+    \frac{dy_1}{dt} &= -0.04 y_1 + 10^4 y_2 y_3 \\
+    \frac{dy_2}{dt} &= 0.04 y_1 - 10^4 y_2 y_3 - 3 \cdot 10^7 y_2^2 \\
+    \frac{dy_3}{dt} &= 3 \cdot 10^7 y_2^2
+\end{align}
+with initial conditions $\mathbf{y}(0) = [1, 0, 0]^T$ over $t \in [0, 10^5]$. Total mass is strictly conserved:
+\begin{equation}
+    y_1(t) + y_2(t) + y_3(t) \equiv 1.0 \quad \forall t \ge 0
+\end{equation}
+
+\subsection{Executing with /science-mode}
+To instruct Antigravity to implement and verify this solver, type:
+\begin{lstlisting}
+/science-mode implement the Robertson stiff chemical kinetics benchmark in kinetics.py.
+Use an implicit integrator with Jacobian evaluation.
+Verify that total mass y1 + y2 + y3 is conserved to within 1e-12.
+Validate against reference data in tests/golden/robertson.
+\end{lstlisting}
+
+\subsection{What Happens Internally}
+\begin{enumerate}
+    \item \texttt{science-mode} classifies the prompt into the \texttt{equation-implementation} playbook.
+    \item It verifies that \texttt{tests/golden/robertson/} exists or downloads reference trajectories.
+    \item It invokes \texttt{science-master} in an isolated branch. \texttt{science-master} implements the RHS and analytic Jacobian $\mathbf{J}(t, \mathbf{y})$:
+    \begin{equation}
+        \mathbf{J} = \begin{bmatrix}
+        -0.04 & 10^4 y_3 & 10^4 y_2 \\
+        0.04 & -10^4 y_3 - 6 \cdot 10^7 y_2 & -10^4 y_2 \\
+        0 & 6 \cdot 10^7 y_2 & 0
+        \end{bmatrix}
+    \end{equation}
+    \item \texttt{theory-reviewer} audits the Jacobian line-by-line against the partial derivatives $\partial \dot{y}_i / \partial y_j$.
+    \item \texttt{numerical-stability-audit} verifies that Radau IIA / BDF integration is selected and explicit RK45 is rejected.
+    \item Test fixtures verify that the mass conservation invariant drift remains below $10^{-12}$.
+\end{enumerate}
+
+\section{Tutorial 2: Conducting an Overnight Autonomous Run}
+
+When conducting an extensive simulation study, refactoring an entire solver module, or tuning convergence across a multi-mesh grid, you can initiate an autonomous overnight run.
+
+\subsection{The Overnight Contract Prompt}
+\begin{lstlisting}
+/science-mode i'm stepping away. refactor the finite volume flux splitters in cfd/fluxes.py
+to use Roe and HLLC approximate Riemann solvers.
+Do not stop until:
+1. All golden tests in tests/golden/sod_shock/ pass with L2 relative error < 0.02.
+2. Invariant conservation of total mass and total energy is verified over 500 time steps.
+3. theory-reviewer signs off on sign conventions and normalizations.
+Keep a decision log in brain/artifacts so I can audit everything in the morning.
+\end{lstlisting}
+
+\subsection{Safeguards During Autonomous Execution}
+\begin{itemize}
+    \item \textbf{Non-blocking Reactive Execution}: Antigravity does not freeze or block your shell; background tasks trigger reactive resume events.
+    \item \textbf{Decision Trail}: The \texttt{show-me-your-work} mechanism logs every design decision, alternative rejected, and benchmark metric to a structured Antigravity Brain Artifact.
+    \item \textbf{Self-Correction}: If a test fails with numerical instability, the agent triggers the stability audit skill (\texttt{/numerical-stability-audit}), pinpoints the flux limiter or time-step CFL violation, adjusts the formulation, and re-executes tests autonomously.
+\end{itemize}
+
+% -------------------------------------------------------------
+% Chapter 7: Antigravity Technical Adapter Reference
+% -------------------------------------------------------------
+\chapter{Antigravity Technical Adapter Reference}
+
+\section{Runtime Tool Mapping}
+
+The \texttt{rules/AGENTS.md} rule automatically injected by \texttt{scienceStack} instructs Antigravity how to translate Agent Plugin conventions into native Antigravity primitives:
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabularx}{\textwidth}{p{4.2cm} p{4.2cm} X}
+\toprule
+\textbf{Cursor / Standard Tool} & \textbf{Antigravity Equivalent} & \textbf{Operational Directives} \\
+\midrule
+\texttt{Task} & \texttt{invoke\_subagent} & Background execution; sets \texttt{TypeName} and \texttt{Role}. \\
+\texttt{AskQuestion} & \texttt{ask\_question} & Multi-choice interactive prompts. \\
+\texttt{TodoWrite} & Brain Artifacts & Persistent Markdown state in \texttt{\textless appDataDir\textgreater/brain/\textless id\textgreater/}. \\
+\texttt{Bash} & \texttt{run\_command} & Shell execution (\texttt{rg}, \texttt{find}, \texttt{pytest}). \\
+\texttt{Read / Edit} & \texttt{read\_file / edit\_file} & Exact character-sequence replacement tools. \\
+\texttt{environment: "cloud"} & \texttt{Workspace: "branch"} & Clones/branches workspace for clean isolation. \\
+\texttt{environment: "local"} & \texttt{Workspace: "inherit"} & Shares root repository directly. \\
+\bottomrule
+\end{tabularx}
+\caption{Adapter tool mapping in Google Antigravity.}
+\label{tab:adapter}
+\end{table}
+
+\section{Antigravity Brain Artifacts}
+
+All audit trails, convergence tables, and execution summaries generated by \texttt{scienceStack} are written to the Antigravity Artifact directory:
+\begin{center}
+    \texttt{\textless appDataDir\textgreater/brain/\textless conversation-id\textgreater/}
+\end{center}
+These artifacts support GitHub-style alerts (\texttt{NOTE}, \texttt{TIP}, \texttt{IMPORTANT}, \texttt{WARNING}, \texttt{CAUTION}), interactive Mermaid flowcharts, and embedded convergence plots.
+
+% -------------------------------------------------------------
+% Chapter 8: Complete Skill and Playbook Catalog
+% -------------------------------------------------------------
+\chapter{Complete Skill and Playbook Catalog}
+
+\section{Primary Scientific and Orchestration Skills}
+
+\begin{longtable}{>{\raggedright\arraybackslash\small\ttfamily}p{6.4cm} >{\raggedright\arraybackslash\small}p{8.8cm}}
+\toprule
+\rmfamily\bfseries Skill / Slash Command & \rmfamily\bfseries Description \& Purpose \\
+\midrule
+\endfirsthead
+\toprule
+\rmfamily\bfseries Skill / Slash Command & \rmfamily\bfseries Description \& Purpose \\
+\midrule
+\endhead
+/science-mode & Primary orchestrator. Matches user prompt to playbooks, manages subagents, and drives tasks to empirical verification. \\
+/setup-sciencestack & Configures model choices and reasoning budgets per role; generates \texttt{pstack-models.md}. \\
+/science-help & Interactive guide. Recommends skills and drafts prompts for any coding situation. \\
+/scientific-equation-verifier & 6-point theoretical audit for LaTeX provenance, signs, dimensions, and normalizations. \\
+/numerical-stability-audit & Deep inspection for condition numbers, catastrophic cancellation, zero division, and stiff ODEs. \\
+/golden-dataset-benchmark & Catalog of canonical test problems (CFD, FEM, MD, quantum) and reference dataset acquisition. \\
+\bottomrule
+\end{longtable}
+
+\section{Scientific Principles Catalog}
+
+\begin{longtable}{>{\raggedright\arraybackslash\small\ttfamily}p{6.6cm} >{\raggedright\arraybackslash\small}p{8.6cm}}
+\toprule
+\rmfamily\bfseries Principle Skill & \rmfamily\bfseries Rule \& Core Mandate \\
+\midrule
+\endfirsthead
+\toprule
+\rmfamily\bfseries Principle Skill & \rmfamily\bfseries Rule \& Core Mandate \\
+\midrule
+\endhead
+principle-equation-provenance & Continuous equation in LaTeX, literature citation, coordinate/sign documentation. \\
+principle-dimensional-discipline & Validate $[LHS] = [RHS]$, non-dimensionalization, dimensionless transcendental inputs. \\
+principle-preserve-conservation-laws & Explicitly monitor and conserve energy, mass, momentum, and norm invariants. \\
+principle-numerical-stability-first & Eliminate cancellation; ban \texttt{inv(A) @ b}; use conditioned linear solvers. \\
+principle-verify-analytical-limits & Method of Manufactured Solutions (MMS), closed-form benchmarks, $O(h^p)$ convergence. \\
+principle-laziness-protocol & Bias toward deletion and the smallest change that solves the problem. \\
+principle-foundational-thinking & Get data structures and core types right before writing algorithmic logic. \\
+principle-redesign-from-first-principles & Redesign as if the requirement were foundational from day one. \\
+principle-attack-the-premise & When multiple fixes fail, write down and test the shared underlying premise. \\
+principle-subtract-before-you-add & Remove dead code and redundant wrappers before building new features. \\
+principle-minimize-reader-load & Collapse one-caller wrappers and shrink mutable state scope. \\
+\bottomrule
+\end{longtable}
+
+\section{General Engineering and Review Skills}
+
+\begin{longtable}{>{\raggedright\arraybackslash\small\ttfamily}p{6.4cm} >{\raggedright\arraybackslash\small}p{8.8cm}}
+\toprule
+\rmfamily\bfseries Skill / Slash Command & \rmfamily\bfseries Description \& Purpose \\
+\midrule
+\endfirsthead
+\toprule
+\rmfamily\bfseries Skill / Slash Command & \rmfamily\bfseries Description \& Purpose \\
+\midrule
+\endhead
+/architect & Settle caller usage, interfaces, types, and module shape before implementing code. \\
+/arena & Run $N$ parallel subagent attempts at the same design problem, then synthesize the best components. \\
+/swarm & Deploy parallel subagents across slices, packages, or test suites, returning a single aggregated report. \\
+/interrogate & Multi-model adversarial review of proposed diffs against safety, performance, and style standards. \\
+/tdd & Test-driven bug reproduction: write a failing fixture first, verify failure, then implement fix. \\
+/no-comments & Strip narrative comments before review; spawns \texttt{comment-master}. \\
+/unslop & Clean conversational filler, apologies, and AI markers from documentation and code. \\
+/show-me-your-work & Record reviewable decision trails to TSV files and Antigravity Brain Artifacts. \\
+/how & Deep walkthrough of how an existing system or subsystem operates. \\
+/why & Investigates architectural rationale using git history, issue records, and chat context. \\
+/teach & Synthesizes \texttt{how} and \texttt{why} into a structured diagrammatic explanation. \\
+/ketchup & Catch-up summary of chat changes since your last message with actionable decisions. \\
+/blast-radius & Analyze downstream breakage risk outside the diff, proving safety with running tests. \\
+/benchmark-checklist & Vets performance measurements (timers, warmups, repeat runs) before reporting numbers. \\
+\bottomrule
+\end{longtable}
+
+% -------------------------------------------------------------
+% Bibliography and Recommended Reading
+% -------------------------------------------------------------
+\chapter*{Recommended Literature \& References}
+\addcontentsline{toc}{chapter}{Recommended Literature \& References}
+
+\begin{enumerate}[itemsep=6pt]
+    \item \textbf{Numerical Methods \& Linear Algebra}:
+    \begin{itemize}
+        \item Trefethen, L. N., \& Bau III, D. (1997). \textit{Numerical Linear Algebra}. SIAM.
+        \item Golub, G. H., \& Van Loan, C. F. (2013). \textit{Matrix Computations}, 4th ed. Johns Hopkins University Press.
+        \item Higham, N. J. (2002). \textit{Accuracy and Stability of Numerical Algorithms}, 2nd ed. SIAM.
+    \end{itemize}
+    \item \textbf{Partial Differential Equations \& Verification}:
+    \begin{itemize}
+        \item Roache, P. J. (2009). \textit{Fundamentals of Verification and Validation}. Hermosa Publishers.
+        \item LeVeque, R. J. (2002). \textit{Finite Volume Methods for Hyperbolic Problems}. Cambridge University Press.
+        \item Salari, K., \& Knupp, P. (2000). \textit{Code Verification by the Method of Manufactured Solutions}. Sandia National Laboratories Report SAND2000-1444.
+    \end{itemize}
+    \item \textbf{Ordinary Differential Equations \& Chemical Kinetics}:
+    \begin{itemize}
+        \item Hairer, E., \& Wanner, G. (1996). \textit{Solving Ordinary Differential Equations II: Stiff and Differential-Algebraic Problems}, 2nd ed. Springer.
+        \item Robertson, H. H. (1966). ``The numerical integration of some systems of stiff ordinary differential equations.'' In \textit{Numerical Analysis: An Introduction}, pp. 178--182.
+    \end{itemize}
+\end{enumerate}
+
+\end{document}

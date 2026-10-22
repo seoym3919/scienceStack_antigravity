@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "sciencestack",
+  "version": "0.15.29",
+  "description": "rigorous agent workflows for scientific coding, theoretical accuracy, equation provenance, and numerical stability in Antigravity.",
+  "author": {
+    "name": "Lauren Tan & Antigravity Scientific Coding"
+  },
+  "homepage": "https://github.com/cursor/plugins/tree/main/pstack",
+  "repository": "https://github.com/cursor/plugins",
+  "license": "MIT",
+  "keywords": [
+    "scienceStack",
+    "science-mode",
+    "scientific-coding",
+    "pstack",
+    "workflow",
+    "principles",
+    "agent-style",
+    "subagents",
+    "unslop"
+  ]
+}
