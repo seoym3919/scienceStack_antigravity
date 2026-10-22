@@ -1,0 +1,16 @@
+{
+  "numerical-safety-gate": {
+    "PreToolUse": [
+      {
+        "matcher": "write_file|edit_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/hook_pre_tool_guard.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

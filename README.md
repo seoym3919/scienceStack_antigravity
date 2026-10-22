@@ -162,6 +162,9 @@ to keep [`/science-mode`](./skills/science-mode/SKILL.md) on across turns, pick 
 | [`/scientific-equation-verifier`](./skills/scientific-equation-verifier/SKILL.md) | verify that code implementing equations strictly matches theoretical formulations, sign conventions, index ordering, and normalization constants. |
 | [`/numerical-stability-audit`](./skills/numerical-stability-audit/SKILL.md) | audit scientific code for catastrophic cancellation, condition numbers, division by zero, and stiff ODE instability. |
 | [`/golden-dataset-benchmark`](./skills/golden-dataset-benchmark/SKILL.md) | acquire, generate, and verify code against canonical industry benchmark problems (CFD, FEM, MD, quantum, kinetics) and golden reference datasets. |
+| [`/astronomy-computing`](./skills/astronomy-computing/SKILL.md) | specialized algorithms and invariants for astronomy, celestial mechanics (Kepler, symplectic N-body), stellar structure (Lane-Emden), and SO(3) coordinate frames. |
+| [`/precision-audit`](./skills/precision-audit/SKILL.md) | audit floating-point precision traps (float32 vs float64), condition numbers vs epsilon, and mixed-precision iterative refinement. |
+| [`/accelerated-scientific-computing`](./skills/accelerated-scientific-computing/SKILL.md) | memory layouts (row vs column major), SIMD vectorization, and precision guards for C++, Fortran, Julia, and JAX. |
 | [`/create-verification-skill`](./skills/create-verification-skill/SKILL.md) | your project has no scripted way to prove app behavior. generates a project-local verify skill with a feature map, for any language or platform. |
 | [`/maintain-verification-skill`](./skills/maintain-verification-skill/SKILL.md) | your verify skill's feature map has drifted from the app. source wave + one live pass, at most one PR of proven corrections. |
 | [`/create-formal-verification-skill`](./skills/create-formal-verification-skill/SKILL.md) | tests can't reach the case that breaks a race, retry, state machine, parser, or unsafe code. verifies one property with the tool that fits and generates a project-local skill to recheck it on every change. |
@@ -293,11 +296,27 @@ models are configurable too. type [`/setup-sciencestack`](./skills/setup-science
 
 when a default changes, a rule written before the change still pins the old default. delete those role lines, or delete the file, then run `/setup-sciencestack` again. a rerun keeps any role whose model differs from the default.
 
-## automations
+## bundled astronomy & scientific solvers
 
-pstack also ships a dormant [benny automation pack](./automations/benny/). benny triages slack issue reports, then reproduces and fixes confirmed bugs with real ui evidence. its files are not registered as slash skills.
+scienceStack ships zero-network, high-precision reference solvers in [`benchmarks/`](./benchmarks/):
 
-to set it up, point cursor at [`FOR_AGENTS.md`](./automations/benny/FOR_AGENTS.md). setup copies the pack into the target repository at `.cursor/automations/benny/`, enables pstack there for shared skills, and keeps user configuration outside the copied pack. benny runs on cursor automations, so it is cursor-only.
+- **Astronomy & Astrophysics** ([`benchmarks/astronomy/`](./benchmarks/astronomy/)):
+  - [`kepler_solver.py`](./benchmarks/astronomy/kepler_solver.py): Machine-precision Kepler equation solver (cubic Halley refinement) and Cartesian orbit propagator with vis-viva invariant audit.
+  - [`symplectic_nbody.py`](./benchmarks/astronomy/symplectic_nbody.py): Symplectic Leapfrog and Yoshida $N$-body integrators strictly preserving energy ($dE/dt = 0$) and angular momentum without secular growth.
+  - [`lane_emden_solver.py`](./benchmarks/astronomy/lane_emden_solver.py): Stellar structure polytrope solver with near-center series expansion removing coordinate singularities, matching analytical limits ($n=0, 1$) and Chandrasekhar benchmarks ($n=1.5, 3.0$).
+  - [`coordinate_transforms.py`](./benchmarks/astronomy/coordinate_transforms.py): Direction cosine coordinate transformations (Equatorial J2000, Ecliptic, Galactic) enforcing $\mathrm{SO}(3)$ orthonormality ($\mathbf{R}^T \mathbf{R} = \mathbf{I}$, $\det \mathbf{R} = 1$).
+- **Fluid Dynamics & Kinetics**:
+  - [`cfd/exact_riemann.py`](./benchmarks/cfd/exact_riemann.py): Exact 1D Euler Riemann solver for Sod shock tube problem.
+  - [`kinetics/robertson_reference.py`](./benchmarks/kinetics/robertson_reference.py): Stiff autocatalytic chemical kinetics reference solver with analytic Jacobian and strict mass conservation ($< 10^{-12}$).
+
+## automated verification tooling
+
+scienceStack includes deterministic command-line tools in [`scripts/`](./scripts/):
+
+- [`audit_numerical_ast.py`](./scripts/audit_numerical_ast.py): Python AST scanner detecting matrix inversion anti-patterns (`np.linalg.inv`), catastrophic cancellation hazards, and missing LaTeX equation docstrings.
+- [`mms_generator.py`](./scripts/mms_generator.py): SymPy-powered Method of Manufactured Solutions generator that computes analytical source terms and test fixtures.
+- [`derive_jacobian.py`](./scripts/derive_jacobian.py): Analytical Jacobian synthesizer that symbolically differentiates ODE/PDE vector fields into error-free Python/NumPy code.
+- [`hook_pre_tool_guard.py`](./scripts/hook_pre_tool_guard.py): Antigravity `PreToolUse` lifecycle hook (`hooks.json`) automatically blocking dangerous matrix inversions before code is written.
 
 ## license
 

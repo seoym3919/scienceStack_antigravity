@@ -580,7 +580,11 @@ Manages the acquisition, generation, and verification of canonical test problems
 \toprule
 \textbf{Domain} & \textbf{Canonical Benchmark} & \textbf{Validation Metric} \\
 \midrule
-Computational Fluid Dynamics (CFD) & 1D Sod Shock Tube & $L_1$ and $L_2$ norm vs. exact Riemann solver; shock position $\Delta x < 0.5 \Delta x_{\text{cell}}$ \\
+Astronomy / Orbits & 2-Body Kepler Problem & Vis-viva energy error $< 10^{-14}$; specific angular momentum error $< 10^{-14}$ \\
+Astronomy / N-body & Symplectic Planetary Orbit & Zero secular energy drift over $10^4$ steps ($|\Delta E/E_0| < 10^{-10}$); angular momentum conserved \\
+Astronomy / Stars & Lane-Emden Polytropes & Surface radius $\xi_1$ and mass factor $\omega_n$ matching exact values for $n=0, 1$ to $< 10^{-10}$ and tabulated benchmarks ($n=1.5, 3.0$) to $< 10^{-5}$ \\
+Astronomy / Frames & IAU Galactic to ICRS & Orthonormality error $\|\mathbf{R}^T \mathbf{R} - \mathbf{I}\| < 10^{-14}$, $\det\mathbf{R} = 1.0$ \\
+CFD & 1D Sod Shock Tube & $L_1$ and $L_2$ norm vs. exact Riemann solver; shock position $\Delta x < 0.5 \Delta x_{\text{cell}}$ \\
 CFD / Turbulence & 2D Taylor-Green Vortex & Kinetic energy decay rate $dK/dt = -2\nu \Omega$ \\
 Solid Mechanics (FEM) & Cook's Membrane & Vertical tip deflection $u_y$ at $(48, 60)$ under mesh refinement \\
 Chemical Kinetics & Robertson Reaction System & Mass conservation $|y_1 + y_2 + y_3 - 1.0| < 10^{-12}$; stiffness ratio $\approx 10^9$ \\
@@ -618,7 +622,144 @@ Inside \texttt{skills/science-mode/playbooks/}, \texttt{scienceStack} ships spec
 \end{enumerate}
 
 % -------------------------------------------------------------
-% Chapter 6: Practical Tutorials and Workflows
+% Chapter 6: Astronomy and Celestial Mechanics Solvers
+% -------------------------------------------------------------
+\chapter{Astronomy and Celestial Mechanics Solvers}
+
+\section{Overview of the Astronomy Suite}
+Astronomy, astrophysics, and celestial mechanics impose stringent mathematical demands on computational algorithms. Planetary and stellar systems are Hamiltonian and non-dissipative; standard explicit integrators introduce artificial secular energy drift that destroys orbital stability over astronomical integration intervals. Coordinate transformations require direction cosine matrices in $\mathrm{SO}(3)$ that must preserve unit norm and orthogonality to machine precision. Stellar structure equations exhibit coordinate singularities at the stellar core ($\xi = 0$) that require analytical series expansions before numerical stepping.
+
+\texttt{scienceStack} provides four bundled, zero-network reference solvers in \texttt{benchmarks/astronomy/}:
+\begin{enumerate}
+    \item \textbf{\texttt{kepler\_solver.py}}: Universal Kepler equation solver for elliptic and hyperbolic motion with cubic Halley iteration and Cartesian orbit propagation.
+    \item \textbf{\texttt{symplectic\_nbody.py}}: Symplectic Leapfrog and Yoshida integrators for gravitationally interacting $N$-body systems with exact energy and angular momentum tracking.
+    \item \textbf{\texttt{lane\_emden\_solver.py}}: Stellar structure polytropic solver with near-center series expansion removing the $2/\xi$ coordinate singularity.
+    \item \textbf{\texttt{coordinate\_transforms.py}}: Direction cosine transformations between Equatorial (J2000 ICRS), Ecliptic, and Galactic coordinate systems.
+\end{enumerate}
+
+\section{Kepler Orbit Propagation and Vis-Viva Invariants}
+\subsection{Mathematical Formulation}
+For two-body gravitational motion under central potential $V(r) = -\mu/r$, Kepler's equation for elliptic orbits ($0 \le e < 1$) relates mean anomaly $M(t) = n(t - t_0)$ to eccentric anomaly $E$:
+\begin{equation}
+    M = E - e \sin E
+\end{equation}
+The true anomaly $\nu$ is obtained without quadrant ambiguity or cancellation via:
+\begin{equation}
+    \tan\frac{\nu}{2} = \sqrt{\frac{1+e}{1-e}} \tan\frac{E}{2}
+\end{equation}
+The orbital radius and perifocal state vector are:
+\begin{equation}
+    r = a(1 - e \cos E), \quad \mathbf{r}_{\text{orb}} = \begin{bmatrix} r \cos\nu \\ r \sin\nu \\ 0 \end{bmatrix}, \quad \mathbf{v}_{\text{orb}} = \frac{\mu}{h} \begin{bmatrix} -\sin\nu \\ e + \cos\nu \\ 0 \end{bmatrix}
+\end{equation}
+where $h = \sqrt{\mu a (1 - e^2)}$ is the specific angular momentum.
+
+\subsection{Cubic Halley Solver}
+For high eccentricities ($e \to 1$), standard Newton-Raphson oscillates or converges slowly. \texttt{scienceStack} implements third-order Halley acceleration:
+\begin{equation}
+    \Delta_1 = -\frac{f(E)}{f'(E)}, \quad \Delta_{\text{Halley}} = -\frac{f(E)}{f'(E) + \frac{1}{2} \Delta_1 f''(E)}
+\end{equation}
+where $f(E) = E - e \sin E - M$, $f'(E) = 1 - e \cos E$, and $f''(E) = e \sin E$. This method achieves machine precision ($|E_{k+1} - E_k| < 10^{-14}$) in 3 iterations.
+
+\subsection{Invariant Verification}
+Every propagated state $(\mathbf{r}, \mathbf{v})$ must satisfy the vis-viva equation:
+\begin{equation}
+    \mathcal{E} = \frac{v^2}{2} - \frac{\mu}{r} = -\frac{\mu}{2a}
+\end{equation}
+and specific angular momentum conservation $\mathbf{h} = \mathbf{r} \times \mathbf{v}$. The reference solver asserts that both invariants deviate by less than $10^{-14}$ in double precision.
+
+\section{Symplectic Gravitational N-Body Dynamics}
+\subsection{The Hamiltonian and Symplectic Structure}
+An $N$-body gravitational system is governed by the Hamiltonian:
+\begin{equation}
+    H(\mathbf{q}, \mathbf{p}) = \sum_{i=1}^N \frac{\mathbf{p}_i^2}{2 m_i} - \sum_{1 \le i < j \le N} \frac{G m_i m_j}{\|\mathbf{q}_i - \mathbf{q}_j\|}
+\end{equation}
+Standard integrators (such as Runge-Kutta 4th order) are non-symplectic: they fail to preserve the differential 2-form $\omega = \sum_i d\mathbf{q}_i \wedge d\mathbf{p}_i$. Over thousands of orbital periods, non-symplectic integrators introduce artificial dissipation or excitation, causing orbits to decay or blow up.
+
+\subsection{Drift-Kick-Drift Leapfrog}
+\texttt{scienceStack} implements the symplectic 2nd-order Drift-Kick-Drift (DKD) scheme:
+\begin{align}
+    \mathbf{q}_i^{n+1/2} &= \mathbf{q}_i^n + \frac{\Delta t}{2} \mathbf{v}_i^n \\
+    \mathbf{v}_i^{n+1} &= \mathbf{v}_i^n + \Delta t \, \mathbf{a}_i(\mathbf{q}^{n+1/2}) \\
+    \mathbf{q}_i^{n+1} &= \mathbf{q}_i^{n+1/2} + \frac{\Delta t}{2} \mathbf{v}_i^{n+1}
+\end{align}
+where gravitational accelerations $\mathbf{a}_i = -G \sum_{j \neq i} m_j \frac{\mathbf{q}_i - \mathbf{q}_j}{\|\mathbf{q}_i - \mathbf{q}_j\|^3}$ satisfy Newton's third law ($\mathbf{F}_{ij} = -\mathbf{F}_{ji}$).
+Because DKD is symplectic, the numerical trajectory exactly traces a nearby ``shadow Hamiltonian'' $\tilde{H} = H + O(\Delta t^2)$, ensuring that total energy $E(t)$ oscillates boundedly with zero secular growth over $10^5$ steps.
+
+\section{Stellar Structure: Lane-Emden Polytropes}
+\subsection{Governing Equation and Singularity Removal}
+Hydrostatic equilibrium and a polytropic equation of state ($P = K \rho^{1 + 1/n}$) yield the dimensionless Lane-Emden equation:
+\begin{equation}
+    \frac{1}{\xi^2} \frac{d}{d\xi}\left( \xi^2 \frac{d\theta}{d\xi} \right) + \theta^n = 0 \iff \frac{d^2\theta}{d\xi^2} + \frac{2}{\xi}\frac{d\theta}{d\xi} + \theta^n = 0
+\end{equation}
+with central boundary conditions $\theta(0) = 1$ and $\theta'(0) = 0$.
+At $\xi = 0$, the geometry term $(2/\xi)\theta'$ creates a coordinate singularity. \texttt{scienceStack} removes this singularity by starting integration at $\xi_0 = 10^{-4}$ using the analytic series expansion:
+\begin{equation}
+    \theta(\xi) \approx 1 - \frac{\xi^2}{6} + \frac{n \xi^4}{120} - \frac{n(8n - 5)\xi^6}{15120} + O(\xi^8)
+\end{equation}
+\subsection{Analytical and Tabulated Benchmarks}
+The numerical solver integrates radially outward until $\theta(\xi_1) = 0$, determining the stellar radius $\xi_1$ and mass factor $\omega_n = -\xi_1^2 \theta'(\xi_1)$:
+\begin{itemize}
+    \item $n = 0$ (Constant density): $\xi_1 = \sqrt{6} \approx 2.449490$, $\omega_0 = 2\sqrt{6} \approx 4.898979$.
+    \item $n = 1$ (Linear polytrope): $\xi_1 = \pi \approx 3.141593$, $\omega_1 = \pi \approx 3.141593$.
+    \item $n = 1.5$ (Convective stars / Non-relativistic white dwarfs): $\xi_1 \approx 3.65375$, $\omega_{1.5} \approx 2.71406$.
+    \item $n = 3.0$ (Radiation-dominated stars / Relativistic Chandrasekhar limit): $\xi_1 \approx 6.89685$, $\omega_3 \approx 2.01824$.
+\end{itemize}
+
+% -------------------------------------------------------------
+% Chapter 7: Automated Tooling and Lifecycle Hooks
+% -------------------------------------------------------------
+\chapter{Automated Tooling and Antigravity Lifecycle Hooks}
+
+\section{The AST Numerical Stability Auditor}
+\textbf{Script}: \texttt{scripts/audit\_numerical\_ast.py}
+
+To ensure deterministic compliance before code is committed or tested, \texttt{scienceStack} includes an Abstract Syntax Tree (AST) static analysis tool. The auditor parses Python source code and identifies:
+\begin{enumerate}
+    \item \textbf{Explicit Matrix Inversions} (\texttt{BAN\_MATRIX\_INV}): Flags occurrences of \texttt{np.linalg.inv} or \texttt{scipy.linalg.inv}. Suggests direct factorized solvers (\texttt{solve(A, b)}).
+    \item \textbf{Catastrophic Cancellation Hazards} (\texttt{CANCELLATION\_LOG1P}, \texttt{CANCELLATION\_EXPM1}, \texttt{CANCELLATION\_ONE\_MINUS\_COS}): Detects expressions like $\log(1+x)$ and $e^x - 1$ where $|x| \ll 1$ causes loss of significant bits.
+    \item \textbf{Single-Precision Traps} (\texttt{PRECISION\_FLOAT32}): Detects single-precision casting in time-steppers or simulation loops where double precision is required.
+    \item \textbf{Missing LaTeX Docstrings} (\texttt{MISSING\_LATEX\_PROVENANCE}): Flags scientific kernels lacking continuous equations in LaTeX docstrings.
+\end{enumerate}
+
+\section{Symbolic Method of Manufactured Solutions (MMS) Generator}
+\textbf{Script}: \texttt{scripts/mms\_generator.py}
+
+Verifying PDE solvers against analytical limits requires exact forcing terms. The MMS generator uses \texttt{SymPy} to symbolically substitute any manufactured exact solution $u_{\text{exact}}(\mathbf{x}, t)$ into a differential operator $\mathcal{L}[u]$:
+\begin{lstlisting}
+python3 scripts/mms_generator.py \
+  --exact "sin(pi*x) * exp(-t)" \
+  --operator "diff(u, t) - alpha * diff(u, x, 2)" \
+  --params "alpha=0.1" \
+  --output test_mms_heat.py
+\end{lstlisting}
+The tool outputs the simplified analytical forcing term $f(x, t) = \mathcal{L}[u_{\text{exact}}]$, formats the continuous equation in LaTeX, and writes a complete, executable \texttt{pytest} test harness verifying the asymptotic convergence order $O(h^p)$.
+
+\section{Symbolic Jacobian Synthesizer}
+\textbf{Script}: \texttt{scripts/derive\_jacobian.py}
+
+In stiff kinetic systems or implicit finite element formulations, hand-deriving Jacobians is a major source of sign errors and transposed indices. The Jacobian synthesizer computes analytical partial derivatives $\mathbf{J}_{ij} = \partial f_i / \partial y_j$, simplifies expressions symbolically, and emits vectorized, conditioned Python/NumPy code directly.
+
+\section{Native Antigravity Lifecycle Hook: PreToolUse Safety Gate}
+\textbf{File}: \texttt{hooks.json} \& \texttt{scripts/hook\_pre\_tool\_guard.py}
+
+Antigravity executes lifecycle hooks at defined stages of agent execution. \texttt{scienceStack} registers a native \texttt{PreToolUse} hook for \texttt{write\_file} and \texttt{edit\_file} tools.
+When an agent attempts to write or edit a Python or scientific code file:
+\begin{enumerate}
+    \item The hook parses the incoming JSON tool payload from \texttt{stdin}.
+    \item It inspects the proposed content for forbidden patterns, specifically explicit matrix inversions (\texttt{np.linalg.inv}).
+    \item If a violation is detected, the hook halts the tool step immediately:
+    \begin{lstlisting}
+    {
+      "decision": "deny",
+      "reason": "[scienceStack Safety Gate] Explicit matrix inversion ('inv') detected..."
+    }
+    \end{lstlisting}
+    \item If compliant, the hook permits execution (\texttt{"decision": "allow"}).
+\end{enumerate}
+This ensures that dangerous numerical patterns are blocked deterministically before being written to disk.
+
+% -------------------------------------------------------------
+% Chapter 8: Practical Tutorials and Workflows
 % -------------------------------------------------------------
 \chapter{End-to-End Practical Tutorials}
 
@@ -684,8 +825,31 @@ Keep a decision log in brain/artifacts so I can audit everything in the morning.
     \item \textbf{Self-Correction}: If a test fails with numerical instability, the agent triggers the stability audit skill (\texttt{/numerical-stability-audit}), pinpoints the flux limiter or time-step CFL violation, adjusts the formulation, and re-executes tests autonomously.
 \end{itemize}
 
+\section{Tutorial 3: Verifying Symplectic N-Body Orbit Invariants}
+
+\subsection{Problem Statement}
+In simulating planetary orbits (e.g. Earth around Sun), explicit non-symplectic integrators introduce secular energy growth that causes the planet to artificially spiral outward. The objective is to verify an astronomical N-body simulator using the symplectic Leapfrog scheme and prove zero secular energy growth over $10^4$ integration steps.
+
+\subsection{Executing with /science-mode}
+\begin{lstlisting}
+/science-mode implement a symplectic 2-body orbit propagator in orbit_sim.py.
+Use the Drift-Kick-Drift Leapfrog integrator.
+Verify that:
+1. Relative energy drift |E(t) - E(0)| / |E(0)| stays below 1e-10 over 10000 steps.
+2. Angular momentum is conserved to within 1e-14.
+3. Validate orbital elements conversion against benchmarks/astronomy/kepler_solver.py.
+\end{lstlisting}
+
+\subsection{Verification and Invariant Output}
+\begin{enumerate}
+    \item \texttt{science-mode} routes the task to the \texttt{equation-implementation} playbook and loads the \texttt{astronomy-computing} skill.
+    \item \texttt{science-master} implements the Drift-Kick-Drift scheme and energy tracking in \texttt{orbit\_sim.py}.
+    \item \texttt{theory-reviewer} audits the gravitational acceleration formulas to verify Newton's third law ($\mathbf{F}_{ji} = -\mathbf{F}_{ij}$) to prevent artificial momentum creation.
+    \item Tests demonstrate that the energy drift oscillates boundedly at $\sim 5 \times 10^{-11}$ without any secular slope, confirming symplectic structure preservation.
+\end{enumerate}
+
 % -------------------------------------------------------------
-% Chapter 7: Antigravity Technical Adapter Reference
+% Chapter 9: Antigravity Technical Adapter Reference
 % -------------------------------------------------------------
 \chapter{Antigravity Technical Adapter Reference}
 
@@ -722,7 +886,7 @@ All audit trails, convergence tables, and execution summaries generated by \text
 These artifacts support GitHub-style alerts (\texttt{NOTE}, \texttt{TIP}, \texttt{IMPORTANT}, \texttt{WARNING}, \texttt{CAUTION}), interactive Mermaid flowcharts, and embedded convergence plots.
 
 % -------------------------------------------------------------
-% Chapter 8: Complete Skill and Playbook Catalog
+% Chapter 10: Complete Skill and Playbook Catalog
 % -------------------------------------------------------------
 \chapter{Complete Skill and Playbook Catalog}
 
@@ -743,6 +907,9 @@ These artifacts support GitHub-style alerts (\texttt{NOTE}, \texttt{TIP}, \textt
 /scientific-equation-verifier & 6-point theoretical audit for LaTeX provenance, signs, dimensions, and normalizations. \\
 /numerical-stability-audit & Deep inspection for condition numbers, catastrophic cancellation, zero division, and stiff ODEs. \\
 /golden-dataset-benchmark & Catalog of canonical test problems (CFD, FEM, MD, quantum) and reference dataset acquisition. \\
+/astronomy-computing & Specialized algorithms and invariants for astronomy, orbital mechanics (Kepler, symplectic N-body), stellar structure (Lane-Emden), and celestial SO(3) coordinate frames. \\
+/precision-audit & Audits floating-point precision hazards (float32 vs float64), condition numbers, and mixed-precision iterative refinement. \\
+/accelerated-scientific-computing & Memory layouts (row vs column major), SIMD vectorization, and precision guards for C++, Fortran, Julia, and JAX. \\
 \bottomrule
 \end{longtable}
 
