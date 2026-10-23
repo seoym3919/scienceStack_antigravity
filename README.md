@@ -10,47 +10,81 @@ there's a growing sense that ai writes too much slop code. in scientific computi
 
 **antigravity gives you the best of all worlds.** multi-model workflows route numerical kernels to fast high-throughput workers and theoretical derivations or architecture audits to high-reasoning models (`pro`).
 
-## install
+## 1. Installation & How to Use
 
-in antigravity:
+### Installation
+
+Install `scienceStack` globally or locally in Google Antigravity:
 
 ```bash
-# Global install:
+# 1. Validate compliance with Agent Plugins 1.0.0 (Strict mode)
+agy plugin validate /home/seo3919/AI_skills/scienceStack_antigravity --strict
+
+# 2. Install globally in Antigravity
 agy plugin install /home/seo3919/AI_skills/scienceStack_antigravity
 
 # Or workspace-local:
 # Place scienceStack_antigravity in .agents/plugins/sciencestack
 ```
 
-The [Antigravity adapter](./docs/harness/antigravity.md) maps all tools (`invoke_subagent`, `ask_question`), model slugs, and rules (`~/.gemini/config/rules/pstack-models.md`).
-
-in cursor:
-
+Verify installation status:
 ```bash
-/add-plugin sciencestack
+agy plugin list
+# - sciencestack (enabled, 0.4.0)
+#   Components: 25 skills, 3 agents, 1 rule
 ```
 
-in claude code:
-
+In Cursor / Claude Code:
 ```bash
+# Cursor:
+/add-plugin sciencestack
+
+# Claude Code:
 /plugin marketplace add cursor/plugins
 /plugin install sciencestack@cursor-plugins
 ```
 
-claude code prefixes plugin commands and agents, so `/science-mode` is `/sciencestack:science-mode`. the [claude code adapter](./docs/harness/claude-code.md) maps every other cursor name.
+The [Antigravity adapter](./docs/harness/antigravity.md) maps all tools (`invoke_subagent`, `ask_question`), model slugs, and rules (`~/.gemini/config/rules/pstack-models.md`).
 
-## get started
+---
 
-two steps:
+### Quickstart & How to Use
 
-1. run [`/setup-sciencestack`](./skills/setup-sciencestack/SKILL.md), pick a reasoning budget, and choose which models you want.
-2. use [`/science-mode`](./skills/science-mode/SKILL.md) whenever you're doing anything that requires rigor.
+Get started in two steps:
+1. Run [`/setup-sciencestack`](./skills/setup-sciencestack/SKILL.md), pick a reasoning budget, and choose which models you want for delegates vs. theory auditors.
+2. Use [`/science-mode`](./skills/science-mode/SKILL.md) whenever you're doing any scientific or engineering task requiring mathematical rigor.
 
-new here? the [scienceStack guide](./docs/guide/README.md) walks you through a first real task, from setup and prompting through verification and overnight runs. stuck, or unsure which skill fits? ask [`/science-help`](./skills/science-help/SKILL.md).
+#### Key Slash Commands in Antigravity
 
-that's it. the other skills are situational, and the mode skill uses them for you as needed. out of the box the mode splits work by model strength: code delegates (feature, refactoring, bug fix, perf, hillclimb) go to fast workers (`flash`), while theoretical audits, prose, and judgment go to high-reasoning models (`pro`). the default panel uses both. [`/setup-sciencestack`](./skills/setup-sciencestack/SKILL.md) changes any of it.
+| Command | Capability & Action | Example Prompt |
+| :--- | :--- | :--- |
+| **`/science-mode`** | Master workflow engine: picks from 23 playbooks to plan, execute, verify, and document scientific code. | `/science-mode Implement a symplectic Leapfrog Keplerian orbit integrator` |
+| **`/setup-sciencestack`** | Configures which models `scienceStack` uses per role and sets reasoning budgets. | `/setup-sciencestack` |
+| **`/astronomy-computing`** | Specialized guidelines for astrophysics, orbital mechanics, Kepler solvers, and celestial frames. | `/astronomy-computing Propagate satellite state with J2 perturbations` |
+| **`/accelerated-scientific-computing`** | Guidelines for cache memory contiguity, SIMD vectorization, and JAX GPU acceleration. | `/accelerated-scientific-computing Optimize 3D finite-difference heat kernel` |
+| **`/precision-audit`** | Audits code for floating-point hazards, catastrophic cancellation, and ill-conditioned linear solves. | `/precision-audit Audit matrix inversion stability in solver.py` |
+| **`/science-help`** | Recommends the appropriate playbook, skill, or agent panel for your task. | `/science-help Which playbook fits verifying grid convergence?` |
 
-## usage
+#### Subagent Delegation Architecture
+
+Out of the box, `scienceStack` splits work between fast implementation workers and high-reasoning theoretical auditors:
+- **`science-master`** (`Model: "flash"`): High-throughput scientific code-writing and implementation delegate.
+- **`theory-reviewer`** (`Model: "pro"`): Theoretical and mathematical auditor verifying equations against physics laws.
+- **`comment-master`** (`Model: "flash_lite"`): Comment rot reviewer eliminating dead code and narrative commentary.
+
+#### Standalone Verification Tools & CLI
+
+```bash
+# Run automated AST safety audit on scientific code
+python3 scripts/audit_numerical_ast.py path/to/solver.py
+
+# Run symplectic orbit integration benchmarks
+python3 benchmarks/astronomy/symplectic_nbody.py
+```
+
+---
+
+## 2. Core Philosophy & Playbooks
 
 use [`/science-mode`](./skills/science-mode/SKILL.md) at the start of a task. it reads your request, picks from a set of playbooks, and runs the other skills as the steps need them.
 

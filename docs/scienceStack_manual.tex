@@ -205,7 +205,111 @@ With 35 top-level skills, 30 bundled scientific and software engineering princip
 \pagenumbering{arabic}
 
 % -------------------------------------------------------------
-% Chapter 1: Introduction and Philosophy
+% Chapter 1: Installation and How to Use
+% -------------------------------------------------------------
+\chapter{Installation and How to Use}
+
+\section{Installing the Plugin}
+
+\texttt{scienceStack} conforms strictly to the Agent Plugins 1.0.0 Specification. It can be installed globally into Antigravity or linked directly into project workspaces.
+
+\subsection{Global Installation in Antigravity}
+To validate compliance and install \texttt{scienceStack} globally across all Antigravity sessions on your machine, execute:
+\begin{lstlisting}[language=bash]
+# 1. Validate strict compliance against Agent Plugins 1.0.0
+agy plugin validate /home/seo3919/AI_skills/scienceStack_antigravity --strict
+
+# 2. Install globally into Antigravity
+agy plugin install /home/seo3919/AI_skills/scienceStack_antigravity
+\end{lstlisting}
+
+\subsection{Verification of Installed Components}
+Confirm that the plugin and its agents are active:
+\begin{lstlisting}[language=bash]
+agy plugin list
+# - sciencestack (enabled, 0.15.29)
+#   Components: 25 skills, 3 agents, 1 rule
+
+agy agent
+# comment-master
+# science-master
+# theory-reviewer
+\end{lstlisting}
+
+\subsection{Cross-Platform Installation (Cursor \& Claude Code)}
+In Cursor:
+\begin{lstlisting}[language=bash]
+/add-plugin sciencestack
+\end{lstlisting}
+In Claude Code:
+\begin{lstlisting}[language=bash]
+/plugin marketplace add cursor/plugins
+/plugin install sciencestack@cursor-plugins
+\end{lstlisting}
+
+\section{Quickstart and Usage Workflows}
+
+Get started with \texttt{scienceStack} in two straightforward steps:
+\begin{enumerate}
+    \item Run \texttt{/setup-sciencestack} to configure your reasoning budget and select model tiers for delegate workers versus theoretical auditors.
+    \item Invoke \texttt{/science-mode} at the beginning of any development task requiring mathematical or numerical rigor.
+\end{enumerate}
+
+\section{Antigravity Slash Commands Reference}
+\begin{itemize}
+    \item \texttt{/science-mode <task>}: Master workflow orchestrator selecting from 23 playbooks to plan, execute, verify, and document scientific algorithms.
+    \item \texttt{/setup-sciencestack}: Interactive model and reasoning budget configuration wizard.
+    \item \texttt{/astronomy-computing <task>}: Specialized solver guidelines for celestial mechanics, symplectic orbits, and coordinate transformations.
+    \item \texttt{/accelerated-scientific-computing <task>}: Directives for cache-line contiguity, SIMD vectorization, and JAX GPU acceleration.
+    \item \texttt{/precision-audit <file>}: Automated audit for catastrophic floating-point cancellation, condition number blowup, and precision mismatch.
+    \item \texttt{/science-help}: Recommends appropriate playbooks and agent panels for your specific engineering problem.
+\end{itemize}
+
+\section{Model Configuration and Reasoning Budgets}
+
+\subsection{The Role-Based Model Architecture}
+Scientific workflows require heterogeneous cognitive capabilities. Compiling numerical kernels, writing unit tests, and verifying syntax requires fast, low-latency execution. Conversely, proving coordinate transformation invariance, analyzing ill-conditioned eigenspaces, and architecting modular solver pipelines requires maximum reasoning depth.
+
+\texttt{scienceStack} defines clear roles mapped to Antigravity model tiers:
+\begin{table}[h!]
+\centering
+\small
+\begin{tabularx}{\textwidth}{p{3.2cm} p{3.5cm} p{3cm} X}
+\toprule
+\textbf{Role} & \textbf{Default Model} & \textbf{Antigravity Tier} & \textbf{Typical Tasks} \\
+\midrule
+\texttt{code} & \texttt{gemini-3.8-flash-high} & \texttt{Model: "flash"} & Kernels, MMS tests, refactoring, benchmark runners \\
+\texttt{judgment} & \texttt{claude-opus-4-6-thinking} & \texttt{Model: "pro"} & Architecture, mathematical proofs, dimensional audits \\
+\texttt{theory-reviewer} & \texttt{claude-opus-4-6-thinking} & \texttt{Model: "pro"} & Equation verification, sign checking, invariant bounds \\
+\texttt{comment-master} & \texttt{gemini-3.8-flash-high} & \texttt{Model: "flash"} & Dead code removal, docstring formatting \\
+\texttt{fast-worker} & \texttt{gemini-3.8-flash-medium} & \texttt{Model: "flash\_lite"} & Linting, single-fixture test loops, syntax checks \\
+\bottomrule
+\end{tabularx}
+\caption{Model tier mapping in Antigravity.}
+\label{tab:models}
+\end{table}
+
+\subsection{Interactive Setup with /setup-sciencestack}
+Run the interactive setup skill to configure model preferences and reasoning budgets:
+\begin{lstlisting}
+/setup-sciencestack
+\end{lstlisting}
+The skill queries the available models in your Antigravity environment, prompts for your target reasoning budget (\texttt{small}, \texttt{medium}, \texttt{large}, \texttt{unlimited}), and persists the configuration rule to:
+\begin{center}
+    \texttt{\textasciitilde/.gemini/config/rules/pstack-models.md}
+\end{center}
+
+\section{Standalone Verification Tools and CLI}
+\begin{lstlisting}[language=bash]
+# Run automated AST safety audit on numerical code
+python3 scripts/audit_numerical_ast.py path/to/solver.py
+
+# Run symplectic orbit integration benchmark suite
+python3 benchmarks/astronomy/symplectic_nbody.py
+\end{lstlisting}
+
+% -------------------------------------------------------------
+% Chapter 2: System Overview and Core Philosophy
 % -------------------------------------------------------------
 \chapter{System Overview and Core Philosophy}
 
@@ -261,76 +365,6 @@ Benchmark Suite & Generic testing & \texttt{golden-dataset-benchmark} \\
 \caption{Evolution from Cursor \texttt{pstack} to Antigravity \texttt{scienceStack}.}
 \label{tab:evolution}
 \end{table}
-
-% -------------------------------------------------------------
-% Chapter 2: Installation and Configuration
-% -------------------------------------------------------------
-\chapter{Installation, Setup, and Model Routing}
-
-\section{Installing the Plugin}
-
-\texttt{scienceStack} conforms to the Agent Plugins 1.0.0 Specification. It can be installed globally into Antigravity or linked directly into project workspaces.
-
-\subsection{Global Installation}
-To install \texttt{scienceStack} globally across all Antigravity sessions on your machine, execute:
-\begin{lstlisting}[language=bash]
-# Validate strict compliance first
-agy plugin validate /home/seo3919/AI_skills/scienceStack_antigravity --strict
-
-# Install into Antigravity CLI plugin engine
-agy plugin install /home/seo3919/AI_skills/scienceStack_antigravity
-\end{lstlisting}
-
-\subsection{Verification of Installed Components}
-Confirm that the plugin and its agents are active:
-\begin{lstlisting}[language=bash]
-agy plugin list
-# Expected output:
-# - sciencestack (enabled, 0.15.29)
-#   Components: 35 skills, 3 agents, 1 rule, 1 hook
-
-agy agent
-# Expected output:
-# Available agents:
-# comment-master
-# science-master
-# theory-reviewer
-\end{lstlisting}
-
-\section{Model Configuration and Reasoning Budgets}
-
-\subsection{The Role-Based Model Architecture}
-Scientific workflows require heterogeneous cognitive capabilities. Compiling numerical kernels, writing unit tests, and verifying syntax requires fast, low-latency execution. Conversely, proving coordinate transformation invariance, analyzing ill-conditioned eigenspaces, and architecting modular solver pipelines requires maximum reasoning depth.
-
-\texttt{scienceStack} defines clear roles mapped to Antigravity model tiers:
-\begin{table}[h!]
-\centering
-\small
-\begin{tabularx}{\textwidth}{p{3.2cm} p{3.5cm} p{3cm} X}
-\toprule
-\textbf{Role} & \textbf{Default Model} & \textbf{Antigravity Tier} & \textbf{Typical Tasks} \\
-\midrule
-\texttt{code} & \texttt{gemini-3.8-flash-high} & \texttt{Model: "flash"} & Kernels, MMS tests, refactoring, benchmark runners \\
-\texttt{judgment} & \texttt{claude-opus-4-6-thinking} & \texttt{Model: "pro"} & Architecture, mathematical proofs, dimensional audits \\
-\texttt{theory-reviewer} & \texttt{claude-opus-4-6-thinking} & \texttt{Model: "pro"} & Equation verification, sign checking, invariant bounds \\
-\texttt{comment-master} & \texttt{gemini-3.8-flash-high} & \texttt{Model: "flash"} & Dead code removal, docstring formatting \\
-\texttt{fast-worker} & \texttt{gemini-3.8-flash-medium} & \texttt{Model: "flash\_lite"} & Linting, single-fixture test loops, syntax checks \\
-\bottomrule
-\end{tabularx}
-\caption{Model tier mapping in Antigravity.}
-\label{tab:models}
-\end{table}
-
-\subsection{Interactive Setup with /setup-sciencestack}
-Run the interactive setup skill to configure model preferences and reasoning budgets:
-\begin{lstlisting}
-/setup-sciencestack
-\end{lstlisting}
-The skill queries the available models in your Antigravity environment, prompts for your target reasoning budget (\texttt{small}, \texttt{medium}, \texttt{large}, \texttt{unlimited}), and persists the configuration rule to:
-\begin{center}
-    \texttt{\textasciitilde/.gemini/config/rules/pstack-models.md}
-\end{center}
-Any role set to \texttt{auto} or \texttt{inherit-parent} dynamically inherits the parent chat session's active model.
 
 % -------------------------------------------------------------
 % Chapter 3: The Specialized Subagent Ecosystem
