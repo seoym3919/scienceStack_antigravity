@@ -49,9 +49,11 @@ def derive_jacobian(vars_str: str, eqs_str: str):
     print("\n" + "=" * 70)
     print("Python / NumPy Implementation:")
     print("=" * 70)
-    print("def compute_jacobian(y):")
+    print("import math\n")
+    # the parameter must not collide with a state-variable name (a variable called `y` is common)
+    print("def compute_jacobian(_state):")
     for i, name in enumerate(var_names):
-        print(f"    {name} = y[{i}]")
+        print(f"    {name} = _state[{i}]")
 
     print("\n    # Evaluated entries:")
     for i in range(len(f_vec)):

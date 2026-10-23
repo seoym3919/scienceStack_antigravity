@@ -4,3 +4,5 @@ node_modules/
 *.aux
 *.out
 *.toc
+.pytest_cache/
+__pycache__/

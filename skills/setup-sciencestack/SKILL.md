@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # /setup-sciencestack
 
-Configure per-role model assignments in `~/.gemini/config/rules/pstack-models.md`.
+Configure per-role model assignments in `~/.gemini/config/rules/scstack-models.md`.
 
 ## Steps
 
@@ -14,7 +14,7 @@ Configure per-role model assignments in `~/.gemini/config/rules/pstack-models.md
    - Run `agy models` to list available models (`gemini-4-argon-high`, `gemini-4-argon-medium`, `claude-opus-5-5-high`, `claude-sonnet-5-5-high`) and subagent tiers (`pro`, `flash`, `flash_lite`, `inherit`).
 2. **Confirm Role Mapping**:
    - Use `ask_question` to confirm or customize the role assignments below.
-3. **Write `~/.gemini/config/rules/pstack-models.md`**:
+3. **Write `~/.gemini/config/rules/scstack-models.md`**:
 
 ```markdown
 ---

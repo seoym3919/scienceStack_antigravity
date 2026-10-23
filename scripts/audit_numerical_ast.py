@@ -3,10 +3,11 @@ r"""
 scienceStack AST Numerical Stability and Scientific Code Quality Auditor.
 
 Walks Python Abstract Syntax Trees (AST) to detect numerical vulnerabilities:
-1. Fatal: Explicit matrix inversion (np.linalg.inv, scipy.linalg.inv) -> Suggests solve(A, b).
+1. Fatal: Explicit matrix inversion (np.linalg.inv, scipy.linalg.inv, `from numpy.linalg import inv`,
+   torch.inverse, any `.inv(` call) -> Suggests solve(A, b).
 2. Warning: Catastrophic cancellation patterns (1 - cos, log(1 + x), exp(x) - 1).
-3. Warning: Raw division without zero guards.
-4. Warning: Single-precision float32 casting in simulation/numerical kernels.
+3. Warning: Single-precision float32 casting in simulation/numerical kernels.
+4. Warning: Truncated pi literals (3.14159 / 3.1416) and mutable NumPy array default arguments.
 5. Quality: Functions with numerical/mathematical signatures missing continuous LaTeX equation docstrings.
 
 Usage:
@@ -19,11 +20,15 @@ import sys
 import json
 from typing import List, Dict, Any
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from inversion_detect import import_aliases, is_inversion_call, is_truncated_pi, mutable_array_default  # noqa: E402
+
 
 class NumericalASTVisitor(ast.NodeVisitor):
-    def __init__(self, filename: str):
+    def __init__(self, filename: str, tree: ast.AST = None):
         self.filename = filename
         self.issues: List[Dict[str, Any]] = []
+        self.aliases = import_aliases(tree) if tree is not None else {}
 
     def add_issue(self, level: str, node: ast.AST, code: str, message: str, suggestion: str):
         self.issues.append({
@@ -38,18 +43,15 @@ class NumericalASTVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call):
         # 1. Check for np.linalg.inv or scipy.linalg.inv
-        func_name = ""
-        if isinstance(node.func, ast.Attribute):
-            # E.g. np.linalg.inv or linalg.inv
-            attr = node.func.attr
-            if attr == "inv":
-                self.add_issue(
-                    "ERROR",
-                    node,
-                    "BAN_MATRIX_INV",
-                    "Explicit matrix inversion ('inv') detected.",
-                    "Replace 'inv(A) @ b' with 'np.linalg.solve(A, b)' or 'scipy.linalg.solve' (Cholesky/LU)."
-                )
+        is_attr_inv = isinstance(node.func, ast.Attribute) and node.func.attr == "inv"
+        if is_attr_inv or is_inversion_call(node, self.aliases):
+            self.add_issue(
+                "ERROR",
+                node,
+                "BAN_MATRIX_INV",
+                "Explicit matrix inversion ('inv') detected.",
+                "Replace 'inv(A) @ b' with 'np.linalg.solve(A, b)' or 'scipy.linalg.solve' (Cholesky/LU)."
+            )
 
         # 2. Check for log(1 + x) instead of log1p
         if isinstance(node.func, ast.Attribute) and node.func.attr in ("log", "ln"):
@@ -115,7 +117,21 @@ class NumericalASTVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_Constant(self, node: ast.Constant):
+        if is_truncated_pi(node):
+            self.add_issue(
+                "WARNING", node, "TRUNCATED_PI",
+                f"Truncated pi literal {node.value} limits accuracy to ~1e-6.",
+                "Use 'math.pi' / 'np.pi' (3.141592653589793)."
+            )
+
     def visit_FunctionDef(self, node: ast.FunctionDef):
+        if mutable_array_default(node, self.aliases) is not None:
+            self.add_issue(
+                "WARNING", node, "MUTABLE_ARRAY_DEFAULT",
+                "Mutable NumPy array default argument is evaluated once at import time and shared across calls.",
+                "Use 'x: np.ndarray | None = None' and initialise inside the function body."
+            )
         # Check for LaTeX docstring in functions with scientific arguments
         docstring = ast.get_docstring(node)
         math_keywords = ("solve", "integrate", "flux", "kepler", "stress", "riemann", "wave", "hamilton", "polytrope", "divergence", "gradient", "laplacian")
@@ -140,7 +156,7 @@ def audit_file(path: str) -> List[Dict[str, Any]]:
         with open(path, "r", encoding="utf-8") as f:
             source = f.read()
         tree = ast.parse(source, filename=path)
-        visitor = NumericalASTVisitor(path)
+        visitor = NumericalASTVisitor(path, tree)
         visitor.visit(tree)
         return visitor.issues
     except Exception as e:
