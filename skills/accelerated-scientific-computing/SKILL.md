@@ -1,6 +1,6 @@
 ---
 name: accelerated-scientific-computing
-description: Best practices, memory layouts, SIMD vectorization, and precision guards for high-performance scientific computing in C++, Fortran, Julia, and JAX. Use for /accelerated-scientific-computing, "C++ scientific code", "Fortran kernels", "Julia scientific computing", or "JAX GPU simulation".
+description: Memory layouts, SIMD vectorization, and precision guards for high-performance scientific computing in C++, Fortran, Julia, and JAX.
 ---
 
 # High-Performance & Multi-Language Scientific Computing

@@ -1,6 +1,7 @@
 ---
 name: setup-sciencestack
-description: Configure which models scienceStack uses per role and at what reasoning budget. Detects your available models and writes an always-applied rule that overrides the skill defaults. Use for /setup-sciencestack, /setup-pstack, "configure scienceStack models", "scienceStack budget", or changing scienceStack's model choices.
+description: Configure which models scienceStack uses per role and at what reasoning budget.
+disable-model-invocation: true
 ---
 
 # Setup scienceStack

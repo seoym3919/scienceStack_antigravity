@@ -1,6 +1,7 @@
 ---
 name: precision-audit
-description: Audits scientific software for floating-point precision hazards, condition number amplification, mixed-precision drift, and float32/float64 mismatch. Use for /precision-audit, "precision check", "float32 vs float64", "condition number audit", or mixed-precision simulation verification.
+description: Audits scientific software for floating-point precision hazards, condition number amplification, mixed-precision drift, and float32/float64 mismatch.
+disable-model-invocation: true
 ---
 
 # Precision-Aware Numerical Auditing Framework

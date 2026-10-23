@@ -1,6 +1,6 @@
 ---
 name: astronomy-computing
-description: Specialized guidelines and algorithms for astronomy, astrophysics, orbital mechanics, symplectic N-body dynamics, stellar structure, and celestial coordinate frames. Use for /astronomy-computing, "astronomy solver", "orbit propagation", "Kepler equation", "Lane-Emden", "N-body integration", or astronomical coordinate conversions.
+description: Algorithms and invariants for astronomy, orbital mechanics, symplectic N-body dynamics, and celestial coordinate frames.
 ---
 
 # Astronomy & Astrophysics Computing Framework
