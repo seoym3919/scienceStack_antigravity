@@ -19,5 +19,12 @@
     "agent-style",
     "subagents",
     "unslop"
+  ],
+  "displayName": "scienceStack",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "/science-mode Implement a symplectic 4th-order Yoshida orbit integrator",
+    "/scientific-equation-verifier Audit governing equations and sign conventions",
+    "/numerical-stability-audit Check solver for ill-conditioned matrices and cancellation"
   ]
 }

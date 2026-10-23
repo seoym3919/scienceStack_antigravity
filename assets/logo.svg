@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect x="12" y="12" width="104" height="104" rx="22" fill="#0F172A" stroke="#F59E0B" stroke-width="4"/>
+  <ellipse cx="64" cy="54" rx="34" ry="14" fill="none" stroke="#F59E0B" stroke-width="3" transform="rotate(-20 64 54)"/>
+  <circle cx="64" cy="54" r="7" fill="#FDE68A"/>
+  <text x="64" y="100" font-family="monospace" font-size="16" font-weight="bold" fill="#F8FAFC" text-anchor="middle">SCI-STACK</text>
+</svg>
