@@ -54,7 +54,10 @@ agy plugin list
 
 #### Method C: Standalone Verification Tools & Lifecycle Safety Hook
 
-- **Automatic Pre-Write Safety Hook ([`scripts/hook_pre_tool_guard.py`](./scripts/hook_pre_tool_guard.py))**: Intercepts `write_file` and `edit_file` calls on scientific code files to block explicit matrix inversion (`np.linalg.inv`, `scipy.linalg.inv`) in favor of factorized linear solves (`solve(A, b)`).
+- **Automatic Pre-Write Safety Hook ([`scripts/hook_pre_tool_guard.py`](./scripts/hook_pre_tool_guard.py))**: Intercepts `write_file` and `edit_file` calls on scientific code files at 0 token cost to block:
+  1. Explicit matrix inversion (`np.linalg.inv`, `scipy.linalg.inv`) in favor of factorized linear solves (`solve(A, b)`).
+  2. Truncated $\pi$ literals (`3.14159`, `3.1416`) in favor of machine-precision `np.pi`, `math.pi`, or `M_PI`.
+  3. Mutable NumPy array defaults in Python function signatures (`def f(x=np.zeros(...)):`).
 - **Standalone CLI Tools**:
 ```bash
 # Run automated AST numerical stability audit on scientific Python files

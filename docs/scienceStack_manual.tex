@@ -228,23 +228,11 @@ Confirm that the plugin and its agents are active:
 \begin{lstlisting}[language=bash]
 agy plugin list
 # - sciencestack (enabled, 0.15.29)
-#   Components: 25 skills, 3 agents, 1 rule
+#   Components: 9 skills, 2 agents, 1 rule, 1 hook
 
 agy agent
-# comment-master
 # science-master
 # theory-reviewer
-\end{lstlisting}
-
-\subsection{Cross-Platform Installation (Cursor \& Claude Code)}
-In Cursor:
-\begin{lstlisting}[language=bash]
-/add-plugin sciencestack
-\end{lstlisting}
-In Claude Code:
-\begin{lstlisting}[language=bash]
-/plugin marketplace add cursor/plugins
-/plugin install sciencestack@cursor-plugins
 \end{lstlisting}
 
 \section{Quickstart and Usage Workflows}
@@ -257,12 +245,15 @@ Get started with \texttt{scienceStack} in two straightforward steps:
 
 \section{Antigravity Slash Commands Reference}
 \begin{itemize}
-    \item \texttt{/science-mode <task>}: Master workflow orchestrator selecting from 23 playbooks to plan, execute, verify, and document scientific algorithms.
+    \item \texttt{/science-mode <task>}: Master workflow orchestrator selecting from 6 specialized scientific playbooks to plan, execute, verify, and document scientific algorithms.
     \item \texttt{/setup-sciencestack}: Interactive model and reasoning budget configuration wizard.
     \item \texttt{/astronomy-computing <task>}: Specialized solver guidelines for celestial mechanics, symplectic orbits, and coordinate transformations.
     \item \texttt{/accelerated-scientific-computing <task>}: Directives for cache-line contiguity, SIMD vectorization, and JAX GPU acceleration.
-    \item \texttt{/precision-audit <file>}: Automated audit for catastrophic floating-point cancellation, condition number blowup, and precision mismatch.
-    \item \texttt{/science-help}: Recommends appropriate playbooks and agent panels for your specific engineering problem.
+    \item \texttt{/scientific-equation-verifier <file>}: 7-point audit verifying discrete code against continuous LaTeX formulas, sign conventions, and normalizations.
+    \item \texttt{/numerical-stability-audit <file>}: Audits solvers for explicit matrix inversion, condition number blowup, and stiff ODE instability.
+    \item \texttt{/precision-audit <file>}: Automated audit for catastrophic floating-point cancellation and mixed-precision drift.
+    \item \texttt{/golden-dataset-benchmark <task>}: Verifies solvers against Method of Manufactured Solutions (MMS) and reference datasets.
+    \item \texttt{/benchmark-checklist <task>}: Vets performance and scaling benchmarks.
 \end{itemize}
 
 \section{Model Configuration and Reasoning Budgets}
@@ -274,14 +265,12 @@ Scientific workflows require heterogeneous cognitive capabilities. Compiling num
 \begin{table}[h!]
 \centering
 \small
-\begin{tabularx}{\textwidth}{p{3.2cm} p{3.5cm} p{3cm} X}
+\begin{tabularx}{\textwidth}{p{3.2cm} p{4.2cm} p{2.5cm} X}
 \toprule
 \textbf{Role} & \textbf{Default Model} & \textbf{Antigravity Tier} & \textbf{Typical Tasks} \\
 \midrule
-\texttt{code} & \texttt{gemini-4-argon-high} / \texttt{claude-sonnet-5-5-high} & \texttt{Model: "flash"} & Kernels, MMS tests, refactoring, benchmark runners \\
-\texttt{judgment} & \texttt{claude-opus-5-5-high} & \texttt{Model: "pro"} & Architecture, mathematical proofs, dimensional audits \\
+\texttt{science-master} & \texttt{gemini-4-argon-high} / \texttt{claude-sonnet-5-5-high} & \texttt{Model: "flash"} & Kernels, MMS tests, refactoring, benchmark runners \\
 \texttt{theory-reviewer} & \texttt{claude-opus-5-5-high} & \texttt{Model: "pro"} & Equation verification, sign checking, invariant bounds \\
-\texttt{comment-master} & \texttt{gemini-4-argon-high} & \texttt{Model: "flash"} & Dead code removal, docstring formatting \\
 \texttt{fast-worker} & \texttt{gemini-4-argon-medium} & \texttt{Model: "flash\_lite"} & Linting, single-fixture test loops, syntax checks \\
 \bottomrule
 \end{tabularx}
@@ -354,7 +343,6 @@ In \texttt{scienceStack\_antigravity}, this framework has been completely re-eng
 \midrule
 Primary Orchestrator & \texttt{poteto-mode} & \texttt{science-mode} \\
 Worker Delegate & \texttt{poteto-agent} & \texttt{science-master} \\
-Comment Reviewer & \texttt{comment-sicko} & \texttt{comment-master} \\
 Theoretical Auditor & \textit{None} & \texttt{theory-reviewer} \\
 Subagent Dispatch & Synchronous / Cursor \texttt{Task} & Asynchronous \texttt{invoke\_subagent} \\
 Decision Logging & Local TSV / commit notes & Antigravity Brain Artifacts \\
@@ -373,19 +361,19 @@ Benchmark Suite & Generic testing & \texttt{golden-dataset-benchmark} \\
 
 \section{Overview of Agent Roles}
 
-Antigravity executes subagents asynchronously in background worker processes. \texttt{scienceStack} provides three purpose-built subagent personas that interact to implement, audit, and clean scientific software.
+Antigravity executes subagents asynchronously in background worker processes. \texttt{scienceStack} provides two purpose-built subagent personas that interact to implement and audit scientific software.
 
 \begin{figure}[h!]
 \centering
-\begin{tcolorbox}[colback=white,colframe=secondaryblue,title=\textbf{The scienceStack Subagent Triad}]
+\begin{tcolorbox}[colback=white,colframe=secondaryblue,title=\textbf{The scienceStack Subagent Architecture}]
 \centering
 \textbf{Primary Orchestrator} (\texttt{/science-mode})\\[0.2cm]
 $\Downarrow$ Spawns Worker Delegate\\[0.2cm]
-\textbf{\texttt{science-master}}\\[0.1cm]
-{\small (Reads full principles index, implements equations in isolated Git worktree)}\\[0.3cm]
-$\swarrow$\hspace{3cm}$\searrow$\\[0.2cm]
-\textbf{\texttt{theory-reviewer}} \hspace{2cm} \textbf{\texttt{comment-master}}\\[0.1cm]
-{\small (Audits LaTeX, signs, dimensions, invariants)} \hspace{0.5cm} {\small (Eliminates conversational noise and rot)}
+\textbf{\texttt{science-master}} (\texttt{Model: "flash"} --- \texttt{gemini-4-argon-high} / \texttt{claude-sonnet-5-5-high})\\[0.1cm]
+{\small (Reads compact delegate principles, implements equations and MMS tests)}\\[0.3cm]
+$\Downarrow$\\[0.2cm]
+\textbf{\texttt{theory-reviewer}} (\texttt{Model: "pro"} --- \texttt{claude-opus-5-5-high})\\[0.1cm]
+{\small (Audits LaTeX provenance, signs, dimensions, and conservation laws)}
 \end{tcolorbox}
 \caption{Interaction model among scienceStack subagents.}
 \end{figure}
@@ -433,16 +421,6 @@ When auditing a diff, \texttt{theory-reviewer} executes a rigorous verification 
     Or probability densities: $\int_{\Omega} |\psi(\mathbf{x}, t)|^2 d\mathbf{x} \equiv 1$.
     \item \textbf{Physical Invariant Conservation}: Does the discrete formulation preserve Noetherian invariants (mass, energy, momentum, symplecticity) over simulation time?
 \end{enumerate}
-
-\section{comment-master: Eliminating Commentary Rot}
-\textbf{File}: \texttt{agents/comment-master.md}\\
-\textbf{Invocation}: \texttt{invoke\_subagent(\{ TypeName: "comment-master", Model: "flash", ... \})}
-
-Comments that narrate the obvious, defend sloppy design, or preserve dead code degrade repository quality. \texttt{comment-master} conducts automated line-by-line comment sweeps:
-\begin{itemize}
-    \item \textbf{Deleted}: Narrative voice (``Here we loop over nodes''), apologies (``Hack for now, fix later''), dead commented-out code blocks, obvious type restatements.
-    \item \textbf{Preserved}: LaTeX equation docstrings, literature citations, coordinate/sign definitions, non-obvious mathematical invariants, and hardware-specific synchronization guards.
-\end{itemize}
 
 % -------------------------------------------------------------
 % Chapter 4: The Six Core Scientific Principles
@@ -655,7 +633,7 @@ def leapfrog_step(q, v, dt, accel_operator):
     \item Analyzes the prompt and classifies the intent into a specialized playbook.
     \item Initializes an in-context todo list or Brain Artifact.
     \item Evaluates prerequisites (models, verification harnesses, git branch state).
-    \item Spawns subagents (\texttt{science-master}, \texttt{theory-reviewer}, \texttt{comment-master}) as each step requires.
+    \item Spawns subagents (\texttt{science-master} and \texttt{theory-reviewer}) as each step requires.
     \item Collects empirical evidence before declaring completion.
 \end{enumerate}
 
@@ -856,21 +834,18 @@ In stiff kinetic systems or implicit finite element formulations, hand-deriving 
 \section{Native Antigravity Lifecycle Hook: PreToolUse Safety Gate}
 \textbf{File}: \texttt{hooks.json} \& \texttt{scripts/hook\_pre\_tool\_guard.py}
 
-Antigravity executes lifecycle hooks at defined stages of agent execution. \texttt{scienceStack} registers a native \texttt{PreToolUse} hook for \texttt{write\_file} and \texttt{edit\_file} tools.
-When an agent attempts to write or edit a Python or scientific code file:
+Antigravity executes lifecycle hooks at defined stages of agent execution. \texttt{scienceStack} registers a native \texttt{PreToolUse} hook for \texttt{write\_file} and \texttt{edit\_file} tools at zero context token cost.
+When an agent attempts to write or edit a scientific code file (\texttt{.py}, \texttt{.cpp}, \texttt{.c}, \texttt{.cu}, \texttt{.f90}, \texttt{.f}, \texttt{.jl}, \texttt{.rs}):
 \begin{enumerate}
     \item The hook parses the incoming JSON tool payload from \texttt{stdin}.
-    \item It inspects the proposed content for forbidden patterns, specifically explicit matrix inversions (\texttt{np.linalg.inv}).
-    \item If a violation is detected, the hook halts the tool step immediately:
-    \begin{lstlisting}
-    {
-      "decision": "deny",
-      "reason": "[scienceStack Safety Gate] Explicit matrix inversion ('inv') detected..."
-    }
-    \end{lstlisting}
-    \item If compliant, the hook permits execution (\texttt{"decision": "allow"}).
+    \item It inspects the proposed code (ignoring comments) for three high-severity hazards:
+    \begin{itemize}
+        \item \textbf{Explicit Matrix Inversion}: Blocks \texttt{np.linalg.inv} and \texttt{scipy.linalg.inv} in favor of \texttt{solve(A, b)}.
+        \item \textbf{Truncated $\pi$ Literals}: Blocks low-precision \texttt{3.14159} and \texttt{3.1416} literals that degrade accuracy to $10^{-6}$ and break $L_2 < 10^{-12}$ parity, enforcing \texttt{np.pi}, \texttt{math.pi}, or \texttt{M\_PI}.
+        \item \textbf{Mutable NumPy Array Default Arguments}: Blocks Python signatures such as \texttt{def f(x=np.zeros(3)):} that cause cross-call state corruption.
+    \end{itemize}
+    \item If a violation is detected, the hook halts the tool step immediately with an actionable \texttt{"decision": "deny"} message; otherwise it returns \texttt{"decision": "allow"}.
 \end{enumerate}
-This ensures that dangerous numerical patterns are blocked deterministically before being written to disk.
 
 % -------------------------------------------------------------
 % Chapter 8: Practical Tutorials and Workflows
@@ -1015,22 +990,22 @@ These artifacts support GitHub-style alerts (\texttt{NOTE}, \texttt{TIP}, \textt
 \rmfamily\bfseries Skill / Slash Command & \rmfamily\bfseries Description \& Purpose \\
 \midrule
 \endhead
-/science-mode & Primary orchestrator. Matches user prompt to playbooks, manages subagents, and drives tasks to empirical verification. \\
+/science-mode & Primary orchestrator. Matches user prompt to 6 scientific playbooks, manages subagents, and drives tasks to empirical verification. \\
 /setup-sciencestack & Configures model choices and reasoning budgets per role; generates \texttt{pstack-models.md}. \\
-/science-help & Interactive guide. Recommends skills and drafts prompts for any coding situation. \\
-/scientific-equation-verifier & 6-point theoretical audit for LaTeX provenance, signs, dimensions, and normalizations. \\
+/scientific-equation-verifier & 7-point theoretical audit for LaTeX provenance, signs, dimensions, and normalizations. \\
 /numerical-stability-audit & Deep inspection for condition numbers, catastrophic cancellation, zero division, and stiff ODEs. \\
 /golden-dataset-benchmark & Catalog of canonical test problems (CFD, FEM, MD, quantum) and reference dataset acquisition. \\
 /astronomy-computing & Specialized algorithms and invariants for astronomy, orbital mechanics (Kepler, symplectic N-body), stellar structure (Lane-Emden), and celestial SO(3) coordinate frames. \\
 /precision-audit & Audits floating-point precision hazards (float32 vs float64), condition numbers, and mixed-precision iterative refinement. \\
 /accelerated-scientific-computing & Memory layouts (row vs column major), SIMD vectorization, and precision guards for C++, Fortran, Julia, and JAX. \\
+/benchmark-checklist & Vets performance measurements (timers, warmups, repeat runs, $L_2$ parity) before reporting numbers. \\
 \bottomrule
 \end{longtable}
 
 \section{Scientific and Engineering Principles Catalog}
 
 \begin{notebox}{Token-Optimized Principle Architecture}
-To eliminate discovery prompt bloat, the 30 principles are bundled under \texttt{skills/science-mode/principles/} rather than registered as individual top-level discovery skills. This saves over 1,300 prompt tokens per user message while remaining fully indexed and dynamically accessible by \texttt{science-mode} and subagents.
+To eliminate discovery prompt bloat, the 6 core scientific principles are bundled under \texttt{skills/science-mode/principles/} rather than registered as individual top-level discovery skills.
 \end{notebox}
 
 \begin{longtable}{>{\raggedright\arraybackslash\small\ttfamily}p{6.6cm} >{\raggedright\arraybackslash\small}p{8.6cm}}
@@ -1048,55 +1023,6 @@ preserve-conservation-laws & Explicitly monitor and conserve energy, mass, momen
 numerical-stability-first & Eliminate cancellation; ban \texttt{inv(A) @ b}; use conditioned linear solvers. \\
 verify-analytical-limits & Method of Manufactured Solutions (MMS), closed-form benchmarks, $O(h^p)$ convergence. \\
 physics-modular-architecture & Isolate pure physical laws, forces, and equations of state into callable modules. \\
-laziness-protocol & Bias toward deletion and the smallest change that solves the problem. \\
-foundational-thinking & Get data structures and core types right before writing algorithmic logic. \\
-redesign-from-first-principles & Redesign as if the requirement were foundational from day one. \\
-attack-the-premise & When multiple fixes fail, write down and test the shared underlying premise. \\
-subtract-before-you-add & Remove dead code and redundant wrappers before building new features. \\
-minimize-reader-load & Collapse one-caller wrappers and shrink mutable state scope. \\
-build-the-lever & Build reproducible scripts/tools instead of performing work by hand. \\
-model-the-domain & Encode the domain in a structure instead of scattered conditionals. \\
-boundary-discipline & Validate at system boundaries; trust internal types and keep pure functions. \\
-type-system-discipline & Make illegal states unrepresentable; brand semantic primitives; derive types. \\
-make-operations-idempotent & Converge to the same end state regardless of partial prior runs. \\
-migrate-callers-then-delete & Migrate callers and delete old APIs in the same wave. \\
-separate-before-serializing & Eliminate state sharing first; serialize structurally only when needed. \\
-prove-it-works & Verify against the real artifact and execution proof, never self-reports. \\
-fix-root-causes & Trace symptoms back to the initial origin and fix them at the root. \\
-sequence-verifiable-units & Break work into small units ending in verifiable states. \\
-test-behavior-not-impl & Assert observable behavior, not internal implementation details. \\
-explain-the-number & Name what limits a measured performance number and rule out artifacts. \\
-guard-the-context-window & Route bulk reading to subagents; keep summaries in the main thread. \\
-never-block-on-the-human & Proceed on reversible tasks; reserve prompts for irreversible actions. \\
-encode-lessons-in-structure & Turn repeated advice into automated lints, hooks, or checks. \\
-\bottomrule
-\end{longtable}
-
-\section{General Engineering and Review Skills}
-
-\begin{longtable}{>{\raggedright\arraybackslash\small\ttfamily}p{6.4cm} >{\raggedright\arraybackslash\small}p{8.8cm}}
-\toprule
-\rmfamily\bfseries Skill / Slash Command & \rmfamily\bfseries Description \& Purpose \\
-\midrule
-\endfirsthead
-\toprule
-\rmfamily\bfseries Skill / Slash Command & \rmfamily\bfseries Description \& Purpose \\
-\midrule
-\endhead
-/architect & Settle caller usage, interfaces, types, and module shape before implementing code. \\
-/arena & Run $N$ parallel subagent attempts at the same design problem, then synthesize the best components. \\
-/swarm & Deploy parallel subagents across slices, packages, or test suites, returning a single aggregated report. \\
-/interrogate & Multi-model adversarial review of proposed diffs against safety, performance, and style standards. \\
-/tdd & Test-driven bug reproduction: write a failing fixture first, verify failure, then implement fix. \\
-/no-comments & Strip narrative comments before review; spawns \texttt{comment-master}. \\
-/unslop & Clean conversational filler, apologies, and AI markers from documentation and code. \\
-/show-me-your-work & Record reviewable decision trails to TSV files and Antigravity Brain Artifacts. \\
-/how & Deep walkthrough of how an existing system or subsystem operates. \\
-/why & Investigates architectural rationale using git history, issue records, and chat context. \\
-/teach & Synthesizes \texttt{how} and \texttt{why} into a structured diagrammatic explanation. \\
-/ketchup & Catch-up summary of chat changes since your last message with actionable decisions. \\
-/blast-radius & Analyze downstream breakage risk outside the diff, proving safety with running tests. \\
-/benchmark-checklist & Vets performance measurements (timers, warmups, repeat runs) before reporting numbers. \\
 \bottomrule
 \end{longtable}
 
