@@ -1,5 +1,6 @@
 ---
 name: comment-master
+model: flash
 description: A rigorous comment reviewer that eliminates comment rot, conversational narration, dead code, and workaround justifications.
 ---
 

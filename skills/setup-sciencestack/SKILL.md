@@ -12,7 +12,7 @@ Write `~/.gemini/config/rules/pstack-models.md` (or `~/.cursor/rules/pstack-mode
 
 ### 1. Detect available models
 
-Enumerate the model slugs you can pass in this session. In Antigravity, run `agy models` or inspect the available session models (e.g. `gemini-3.8-flash-high`, `claude-opus-4-6-thinking`, `claude-sonnet-4-6`, `gpt-oss-120b-medium`) or subagent model tiers (`pro`, `flash`, `flash_lite`, `inherit`). In Cursor, check the Task subagent model list. If you cannot detect any, ask the user to paste the models they have access to. The aliases `inherit-parent` and `auto` are always valid.
+Enumerate the model slugs you can pass in this session. In Antigravity, run `agy models` or inspect the available session models (e.g. `gemini-4-argon-high`, `claude-opus-5-5-high`, `claude-sonnet-5-5-high`, `gpt-oss-120b-medium`) or subagent model tiers (`pro`, `flash`, `flash_lite`, `inherit`). In Cursor, check the Task subagent model list. If you cannot detect any, ask the user to paste the models they have access to. The aliases `inherit-parent` and `auto` are always valid.
 
 ### 2. Load current state
 
@@ -28,7 +28,7 @@ The default role-to-model mapping is the rule shape shown in step 5 below. If `~
 - `small — medium reasoning`
 
 **(b) Apply it.** Build the working table from the defaults:
-- Antigravity defaults: `gemini-3.8-flash-high` for code workers, `claude-opus-4-6-thinking` for judgment/prose/hardest tasks.
+- Antigravity defaults: `gemini-4-argon-high` for high-speed code workers/explorers, `claude-sonnet-5-5-high` for balanced code/architecture synthesis, and `claude-opus-5-5-high` for judgment/prose/hardest theoretical proofs.
 - On a re-run keep any role you changed by family, list, or alias (`inherit-parent`, `auto`).
 
 **(c) Show the roles and confirm.** Show every role with its model. Ask whether to accept as-is or change specific roles using `ask_question`. For panel roles (arena runners, architect runners, interrogate reviewers) the value is a list, and one subagent runs per entry.
@@ -51,25 +51,25 @@ alwaysApply: true
 # pstack model configuration. One line per role. Delete a line to fall back to the skill default.
 # `inherit-parent` or `auto` as a value: the role runs on the parent chat model.
 # budget: large (xhigh)
-feature, refactoring: gemini-3.8-flash-high
-bug-fix: gemini-3.8-flash-high
-perf-issue: gemini-3.8-flash-high
-hillclimb: gemini-3.8-flash-high
-judgment and prose: claude-opus-4-6-thinking
-hardest tasks: claude-opus-4-6-thinking
-how explorer: gemini-3.8-flash-high
-how explainer: claude-opus-4-6-thinking
-why investigators: gemini-3.8-flash-high
-why synthesizer: claude-opus-4-6-thinking
-reflect tooling: gemini-3.8-flash-high
-reflect judgment, divergent, synthesizer: claude-opus-4-6-thinking
-arena runners: claude-opus-4-6-thinking, gemini-3.8-flash-high
-arena cross-judge pool: claude-opus-4-6-thinking, gemini-3.8-flash-high
-swarm workers: gemini-3.8-flash-high
-architect runners: claude-opus-4-6-thinking, gemini-3.8-flash-high
-interrogate reviewers: claude-opus-4-6-thinking, gemini-3.8-flash-high
-theory reviewer: claude-opus-4-6-thinking
-numerical auditor: gemini-3.8-flash-high
+feature, refactoring: gemini-4-argon-high
+bug-fix: gemini-4-argon-high
+perf-issue: gemini-4-argon-high
+hillclimb: gemini-4-argon-high
+judgment and prose: claude-opus-5-5-high
+hardest tasks: claude-opus-5-5-high
+how explorer: gemini-4-argon-high
+how explainer: claude-opus-5-5-high
+why investigators: gemini-4-argon-high
+why synthesizer: claude-opus-5-5-high
+reflect tooling: gemini-4-argon-high
+reflect judgment, divergent, synthesizer: claude-opus-5-5-high
+arena runners: claude-opus-5-5-high, claude-sonnet-5-5-high, gemini-4-argon-high
+arena cross-judge pool: claude-opus-5-5-high, claude-sonnet-5-5-high, gemini-4-argon-high
+swarm workers: gemini-4-argon-high
+architect runners: claude-opus-5-5-high, claude-sonnet-5-5-high, gemini-4-argon-high
+interrogate reviewers: claude-opus-5-5-high, claude-sonnet-5-5-high, gemini-4-argon-high
+theory reviewer: claude-opus-5-5-high
+numerical auditor: gemini-4-argon-high
 ```
 
 ### 6. Confirm

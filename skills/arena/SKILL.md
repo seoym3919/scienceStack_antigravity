@@ -14,7 +14,7 @@ Every candidate gets the same prompt, so the prompt is the contract.
 
 1. State the artifact each candidate is producing.
 2. Derive the rubric, 3-6 concrete gradeable criteria for what success looks like on *this* task. It is the picker's tool in Phase D. Candidates only see the task.
-3. Pick the runners. Use the `arena runners` line in `pstack-models.md` (`pstack-models.mdc` in Cursor). Defaults: in Antigravity, one each on `claude-opus-4-6-thinking` and `gemini-3.8-flash-high`; in Cursor, `claude-opus-5-5-xhigh` and `grok-4.7-xhigh-fast`. An `auto` or `inherit-parent` entry means the parent model.
+3. Pick the runners. Use the `arena runners` line in `pstack-models.md` (`pstack-models.mdc` in Cursor). Defaults: in Antigravity, one each on `claude-opus-5-5-high` and `gemini-4-argon-high`; in Cursor, `claude-opus-5-5-xhigh` and `grok-4.7-xhigh-fast`. An `auto` or `inherit-parent` entry means the parent model.
 4. Give each candidate its own output location: in Antigravity, use `Workspace: "branch"` in `invoke_subagent` or isolated directories (`/tmp/arena-<slug>/candidate-<n>/`), per the **separate-before-serializing-shared-state** principle skill.
 
 ## Phase B: Fan out

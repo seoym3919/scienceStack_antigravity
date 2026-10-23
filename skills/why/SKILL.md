@@ -9,7 +9,7 @@ disable-model-invocation: true
 Investigate the motivation and intent behind code. The companion `how` skill answers what the code does and how it works. `why` answers what forces led to its shape.
 
 Each spawn below names a role line in `pstack-models.md` (`pstack-models.mdc` in Cursor) and a default.
-- In Antigravity: Spawn via `invoke_subagent` with `TypeName: "self"` (preserving MCP tool access). Defaults: `why investigators` is `gemini-3.8-flash-high` (or `flash`); `why synthesizer` is `claude-opus-4-6-thinking` (or `pro`).
+- In Antigravity: Spawn via `invoke_subagent` with `TypeName: "self"` (preserving MCP tool access). Defaults: `why investigators` is `gemini-4-argon-high` (or `flash`); `why synthesizer` is `claude-opus-5-5-high` (or `pro`).
 - In Cursor: Spawn `Task` with `subagent_type: generalPurpose` and `readonly: false`. Defaults: `grok-4.7-xhigh-fast` and `claude-opus-5-5-xhigh`.
 Set model to that line's value, or default if missing. Leave model unset when the value is `auto` or `inherit-parent`. Subagents run asynchronously in background.
 

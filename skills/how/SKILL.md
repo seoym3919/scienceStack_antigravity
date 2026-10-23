@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Explore the codebase to answer "how does X work?" questions. Produce architectural explanations at the level of a senior engineer onboarding onto a subsystem, enough to build a working mental model, not so much that it reads like annotated source code.
 
-In Antigravity, spawn subagents via `invoke_subagent` with `TypeName: "research"` (or `"self"`). Explorers use the `how explorer` line in `pstack-models.md` (default `gemini-3.8-flash-high` or `flash`), and explainers use the `how explainer` line (default `claude-opus-4-6-thinking` or `pro`). In Cursor, spawn `Task` subagents with `subagent_type: generalPurpose` and `readonly: true` (defaults `grok-4.7-xhigh-fast` and `claude-opus-5-5-xhigh`). Set model to that line's value, or default if missing. Leave model unset when the value is `auto` or `inherit-parent`. Subagents run asynchronously and notify you on completion.
+In Antigravity, spawn subagents via `invoke_subagent` with `TypeName: "research"` (or `"self"`). Explorers use the `how explorer` line in `pstack-models.md` (default `gemini-4-argon-high` or `flash`), and explainers use the `how explainer` line (default `claude-opus-5-5-high` or `pro`). In Cursor, spawn `Task` subagents with `subagent_type: generalPurpose` and `readonly: true` (defaults `grok-4.7-xhigh-fast` and `claude-opus-5-5-xhigh`). Set model to that line's value, or default if missing. Leave model unset when the value is `auto` or `inherit-parent`. Subagents run asynchronously and notify you on completion.
 
 ## 1. Assess complexity
 

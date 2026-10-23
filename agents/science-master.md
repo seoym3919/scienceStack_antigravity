@@ -1,5 +1,6 @@
 ---
 name: science-master
+model: flash
 description: Delegate subagent for scientific code-writing and implementation tasks spawned during a `/science-mode` run. Use for delegates, not as the runner for `/science-mode` itself. Spawn a fresh `science-master` for each new task. Reads compact delegate principles before work.
 is_background: true
 ---

@@ -68,9 +68,9 @@ Get started in two steps:
 #### Subagent Delegation Architecture
 
 Out of the box, `scienceStack` splits work between fast implementation workers and high-reasoning theoretical auditors:
-- **`science-master`** (`Model: "flash"`): High-throughput scientific code-writing and implementation delegate.
-- **`theory-reviewer`** (`Model: "pro"`): Theoretical and mathematical auditor verifying equations against physics laws.
-- **`comment-master`** (`Model: "flash_lite"`): Comment rot reviewer eliminating dead code and narrative commentary.
+- **`science-master`** (`Model: "flash"` — `gemini-4-argon-high` / `claude-sonnet-5-5-high`): High-throughput scientific code-writing and implementation delegate.
+- **`theory-reviewer`** (`Model: "pro"` — `claude-opus-5-5-high`): Theoretical and mathematical auditor verifying equations against physics laws.
+- **`comment-master`** (`Model: "flash"` — `gemini-4-argon-medium`): Comment rot reviewer eliminating dead code and narrative commentary.
 
 #### Standalone Verification Tools & CLI
 

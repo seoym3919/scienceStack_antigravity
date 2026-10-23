@@ -1,5 +1,6 @@
 ---
 name: theory-reviewer
+model: pro
 description: A rigorous theoretical and mathematical auditor that reviews scientific code line-by-line against governing equations, sign conventions, tensor/index order, normalization constants, and physical conservation laws.
 ---
 

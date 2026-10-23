@@ -110,7 +110,7 @@ Principle reference guides are stored in `principles/<title>.md` under this skil
 - In Cursor: Spawn `Task` with `subagent_type: "science-master"`. The chat that receives `/science-mode` runs the playbook. Never spawn a `science-master` to run the playbook itself. Routed workflow skills (`how`, `why`, `interrogate`, `reflect`, `swarm`) set their own subagent types for diverse review.
 
 **Defaults for subagent calls.** Subagents run in background, file pointers not inlined context, explicit model per role (configurable via `/setup-sciencestack`).
-- In Antigravity: Defaults are `gemini-3.8-flash-high` (or `Model: "flash"`) for code delegates, `claude-opus-4-6-thinking` (or `Model: "pro"`) for judgment, prose, and hardest tasks.
+- In Antigravity: Defaults are `gemini-4-argon-high` (or `Model: "flash"`) for code delegates, `claude-opus-5-5-high` (or `Model: "pro"`) for judgment, prose, and hardest tasks.
 - In Cursor: Defaults are `grok-4.7-xhigh-fast` for code, `claude-opus-5-5-xhigh` for prose and judgment.
 - Per-role lines in `pstack-models.md` (`~/.gemini/config/rules/pstack-models.md` in Antigravity or `~/.cursor/rules/pstack-models.mdc` in Cursor) override defaults. A role on `inherit-parent` or `auto` runs on the parent chat model.
 

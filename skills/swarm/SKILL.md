@@ -19,7 +19,7 @@ Open a todolist with one entry per phase before launching anything.
 
 1. State the done predicate and the artifact or report the swarm must return.
 2. Choose the shape. Partition into slices, race N workers on identical briefs, or mix both. For a race or mixed shape, declare `first pass`, `rank all`, or `best-of` before spawning.
-4. Pick the worker model from the `swarm workers` line in `pstack-models.md` (`pstack-models.mdc` in Cursor). Antigravity default is `gemini-3.8-flash-high` (or `flash`); Cursor default is `grok-4.7-xhigh-fast`. For `auto` or `inherit-parent`, omit model so workers run on the parent model.
+4. Pick the worker model from the `swarm workers` line in `pstack-models.md` (`pstack-models.mdc` in Cursor). Antigravity default is `gemini-4-argon-high` (or `flash`); Cursor default is `grok-4.7-xhigh-fast`. For `auto` or `inherit-parent`, omit model so workers run on the parent model.
 5. Give each worker its own writable output when it writes. When workers verify or measure commits, each brief names the exact SHAs. A measurement brief also names the method (sample count, what one sample is, order). The worker records both in its result.
 
 ## Phase B: Fan out

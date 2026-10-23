@@ -44,11 +44,11 @@ Antigravity uses high-capability Gemini, Claude, and open-source models, as well
 
 | Original Cursor Slug | Antigravity Model Equivalent | Subagent Model Tier (`Model`) |
 | :--- | :--- | :--- |
-| `claude-opus-5-5-xhigh` / `claude-opus-5-5-max` | `claude-opus-4-6-thinking` | `"pro"` |
-| `claude-sonnet-4-5` / `claude-sonnet-4` | `claude-sonnet-4-6` | `"pro"` or `"inherit"` |
-| `grok-4.7-xhigh-fast` / `grok-4.7` | `gemini-3.8-flash-high` | `"flash"` |
+| `claude-opus-5-5-xhigh` / `claude-opus-5-5-max` | `claude-opus-5-5-high` | `"pro"` |
+| `claude-sonnet-5-5-high` / `claude-sonnet-4` | `claude-sonnet-5-5-high` | `"pro"` or `"inherit"` |
+| `grok-4.7-xhigh-fast` / `grok-4.7` | `gemini-4-argon-high` | `"flash"` |
 | `auto` or `inherit-parent` | Current session model | `"inherit"` |
-| Routine / fast worker tasks | `gemini-3.8-flash-medium` | `"flash_lite"` |
+| Routine / fast worker tasks | `gemini-4-argon-medium` | `"flash_lite"` |
 
 ### The `pstack-models.md` Rule
 * In Antigravity, model preferences are configured by running `/setup-pstack`.

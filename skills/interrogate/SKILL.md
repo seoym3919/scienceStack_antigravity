@@ -30,8 +30,8 @@ Launch all reviewers in a single turn, one per entry on the `interrogate reviewe
 
 | Subagent | Antigravity Default | Cursor Default |
 |---|---|---|
-| Reviewer A | `claude-opus-4-6-thinking` (or `pro`) | `claude-opus-5-5-xhigh` |
-| Reviewer B | `gemini-3.8-flash-high` (or `flash`) | `grok-4.7-xhigh-fast` |
+| Reviewer A | `claude-opus-5-5-high` (or `pro`) | `claude-opus-5-5-xhigh` |
+| Reviewer B | `gemini-4-argon-high` (or `flash`) | `grok-4.7-xhigh-fast` |
 
 Omit model for an `auto` or `inherit-parent` entry, so that reviewer runs on the parent model. If a configured slug is not available, use the table default.
 
