@@ -54,11 +54,11 @@ agy plugin list
 
 #### Method C: Standalone Verification Tools & Lifecycle Safety Hook
 
-- **Automatic Pre-Write Safety Hook ([`scripts/hook_pre_tool_guard.py`](./scripts/hook_pre_tool_guard.py))**: Intercepts `write_file` and `edit_file` calls on scientific code files at 0 token cost to block:
-  1. Explicit matrix inversion (`np.linalg.inv`, `scipy.linalg.inv`) in favor of factorized linear solves (`solve(A, b)`).
+- **Automatic Pre-Write Safety Hook ([`scripts/hook_pre_tool_guard.py`](./scripts/hook_pre_tool_guard.py) + [`scripts/inversion_detect.py`](./scripts/inversion_detect.py))**: Intercepts `write_file`, `edit_file`, and `run_command` calls on scientific code files at 0 token cost using **AST & import-aware analysis** (resolving module aliases such as `import scipy.linalg as la; la.inv` and `from numpy.linalg import inv` while ignoring comments, docstrings, and string literals) to block:
+  1. Explicit matrix inversion (`np.linalg.inv`, `scipy.linalg.inv`, `torch.linalg.inv`, `torch.inverse`) in favor of factorized linear solves (`solve(A, b)`).
   2. Truncated $\pi$ literals (`3.14159`, `3.1416`) in favor of machine-precision `np.pi`, `math.pi`, or `M_PI`.
   3. Mutable NumPy array defaults in Python function signatures (`def f(x=np.zeros(...)):`).
-- **Standalone CLI Tools**:
+- **Standalone CLI Tools & Unit Tests (60 tests)**:
 ```bash
 # Run automated AST numerical stability audit on scientific Python files
 python3 scripts/audit_numerical_ast.py path/to/solver.py
@@ -66,6 +66,9 @@ python3 scripts/audit_numerical_ast.py path/to/solver.py
 # Run symplectic orbit integration & coordinate transform benchmarks
 python3 benchmarks/astronomy/symplectic_nbody.py
 python3 benchmarks/astronomy/coordinate_transforms.py
+
+# Run the 60-test verification suite (AST guard, reference benchmarks, flag & Python 3.10 portability checks)
+python3 -B -m unittest discover -s tests -v
 ```
 
 ---

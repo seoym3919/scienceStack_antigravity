@@ -285,16 +285,20 @@ Run the interactive setup skill to configure model preferences and reasoning bud
 \end{lstlisting}
 The skill queries the available models in your Antigravity environment, prompts for your target reasoning budget (\texttt{small}, \texttt{medium}, \texttt{large}, \texttt{unlimited}), and persists the configuration rule to:
 \begin{center}
-    \texttt{\textasciitilde/.gemini/config/rules/pstack-models.md}
+    \texttt{\textasciitilde/.gemini/config/rules/scstack-models.md}
 \end{center}
 
-\section{Standalone Verification Tools and CLI}
+\section{Standalone Verification Tools, AST Hook \& Unit Test Suite}
+The PreToolUse lifecycle hook (\texttt{scripts/hook\_pre\_tool\_guard.py}) and AST auditor (\texttt{scripts/audit\_numerical\_ast.py}) share the import-aware detection engine in \texttt{scripts/inversion\_detect.py}, resolving Python import aliases (\texttt{import scipy.linalg as la; la.inv(A)} and \texttt{from numpy.linalg import inv}) while ignoring comments and docstrings across \texttt{write\_file}, \texttt{edit\_file}, and \texttt{run\_command}.
 \begin{lstlisting}[language=bash]
 # Run automated AST safety audit on numerical code
 python3 scripts/audit_numerical_ast.py path/to/solver.py
 
 # Run symplectic orbit integration benchmark suite
 python3 benchmarks/astronomy/symplectic_nbody.py
+
+# Run the 60-test verification suite (AST guard, reference benchmarks, flag & Python 3.10 portability)
+python3 -B -m unittest discover -s tests -v
 \end{lstlisting}
 
 % -------------------------------------------------------------
@@ -991,7 +995,7 @@ These artifacts support GitHub-style alerts (\texttt{NOTE}, \texttt{TIP}, \textt
 \midrule
 \endhead
 /science-mode & Primary orchestrator. Matches user prompt to 6 scientific playbooks, manages subagents, and drives tasks to empirical verification. \\
-/setup-sciencestack & Configures model choices and reasoning budgets per role; generates \texttt{pstack-models.md}. \\
+/setup-sciencestack & Configures model choices and reasoning budgets per role; generates \texttt{scstack-models.md}. \\
 /scientific-equation-verifier & 7-point theoretical audit for LaTeX provenance, signs, dimensions, and normalizations. \\
 /numerical-stability-audit & Deep inspection for condition numbers, catastrophic cancellation, zero division, and stiff ODEs. \\
 /golden-dataset-benchmark & Catalog of canonical test problems (CFD, FEM, MD, quantum) and reference dataset acquisition. \\
