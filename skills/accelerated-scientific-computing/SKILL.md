@@ -1,6 +1,7 @@
 ---
 name: accelerated-scientific-computing
 description: Memory layouts, SIMD vectorization, and precision guards for high-performance scientific computing in C++, Fortran, Julia, and JAX.
+argument-hint: "[task or file]"
 ---
 
 # High-Performance & Multi-Language Scientific Computing

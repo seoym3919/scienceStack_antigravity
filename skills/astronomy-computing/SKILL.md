@@ -1,6 +1,7 @@
 ---
 name: astronomy-computing
 description: Algorithms and invariants for astronomy, orbital mechanics, symplectic N-body dynamics, and celestial coordinate frames.
+argument-hint: "[task or file]"
 ---
 
 # Astronomy & Astrophysics Computing Framework

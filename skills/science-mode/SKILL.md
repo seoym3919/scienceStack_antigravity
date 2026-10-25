@@ -2,6 +2,7 @@
 name: science-mode
 description: Rigorous scientific engineering workflow for theoretical fidelity, equation provenance, dimensional consistency, numerical stability, and closed-loop verification.
 disable-model-invocation: true
+argument-hint: "<task>"
 ---
 
 # /science-mode — Native Antigravity Scientific Engineering Workflow

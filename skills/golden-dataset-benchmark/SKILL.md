@@ -1,7 +1,7 @@
 ---
 name: golden-dataset-benchmark
-description: "Acquire, generate, and verify code against golden reference datasets, NIST/authoritative standards, and classical industry-standard benchmark problems (CFD, FEM, MD, quantum, ODE/PDE). Use for /golden-dataset-benchmark, 'get benchmark problem', or 'validate against golden data'."
-disable-model-invocation: true
+description: Verify solvers against golden reference data, analytic solutions, NIST data or manufactured solutions with explicit error norms. Use when validating a numerical method or adding regression benchmarks.
+argument-hint: "[solver or problem]"
 ---
 
 # Golden Dataset & Industry Standard Benchmark

@@ -1,7 +1,7 @@
 ---
 name: scientific-equation-verifier
-description: "Verify that code implementing mathematical and physical equations strictly matches theoretical formulations, sign conventions, index ordering, and normalization constants. Use when implementing new equations, porting formulas from papers, or auditing scientific kernels."
-disable-model-invocation: true
+description: Verify code against its governing equation: sign conventions, index order, normalization, units. Use when implementing or reviewing code that encodes a mathematical or physical formula.
+argument-hint: "<file> [equation]"
 ---
 
 # Scientific Equation Verifier

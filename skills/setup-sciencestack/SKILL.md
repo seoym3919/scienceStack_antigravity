@@ -1,6 +1,6 @@
 ---
 name: setup-sciencestack
-description: Configure which models scienceStack uses per role (Gemini 4, Claude Opus 5.5, Claude Sonnet 5.5) and at what reasoning budget.
+description: Configure which Claude model (opus / sonnet / haiku) scienceStack uses per role.
 disable-model-invocation: true
 ---
 

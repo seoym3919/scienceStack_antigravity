@@ -1,7 +1,7 @@
 ---
 name: numerical-stability-audit
-description: "Audit scientific and numerical code for floating-point vulnerabilities: catastrophic cancellation, ill-conditioned linear systems, division by near-zero, premature overflow/underflow, and conservation drift. Use when debugging NaNs, infinities, solver divergence, or precision loss."
-disable-model-invocation: true
+description: Audit numerical code for catastrophic cancellation, ill-conditioned solves, explicit matrix inversion, divide-by-zero and stiffness hazards. Use when writing or reviewing solvers and numerical kernels.
+argument-hint: "<file_or_dir>"
 ---
 
 # Numerical Stability Audit
