@@ -24,8 +24,8 @@ agy plugin install /home/seo3919/AI_skills/scienceStack_antigravity
 Verify installation status:
 ```bash
 agy plugin list
-# - sciencestack (enabled, 0.15.29)
-#   Components: 9 skills, 2 agents, 1 rule, 1 hook
+# - sciencestack (enabled, 0.21.1)
+#   Components: 12 skills, 2 agents, 1 rule, 4 hooks
 ```
 
 ---
@@ -40,35 +40,43 @@ agy plugin list
 | **`/astronomy-computing`** | Algorithms and invariants for orbital mechanics, Kepler solvers, symplectic N-body dynamics, and $\mathrm{SO}(3)$ coordinate frames. | `/astronomy-computing Transform state vectors from ICRS J2000 to Galactic coordinates` |
 | **`/accelerated-scientific-computing`** | Memory layouts (row- vs. column-major), SIMD vectorization, and precision guards for C++, Fortran, Julia, and JAX. | `/accelerated-scientific-computing Optimize 3D finite-difference stencil for cache contiguity` |
 | **`/scientific-equation-verifier`** | 7-point audit verifying discrete code against continuous LaTeX formulas, sign conventions, index order, and normalizations. | `/scientific-equation-verifier Audit gravitational softening kernel in gravity.py` |
-| **`/numerical-stability-audit`** | Audits solvers for explicit matrix inversion (`inv(A)`), catastrophic cancellation, division by zero, and stiff ODE hazards. | `/numerical-stability-audit linear_solver.py` |
+| **`/numerical-stability-audit`** | Audits solvers for explicit matrix inversion (`inv(A)`), catastrophic cancellation, division by zero, unseeded random states, and stiff ODE hazards. | `/numerical-stability-audit linear_solver.py` |
 | **`/precision-audit`** | Audits `float32` vs. `float64` precision drift, condition number amplification $\kappa(A)\epsilon_{\text{mach}}$, and mixed precision. | `/precision-audit solver.py` |
 | **`/golden-dataset-benchmark`** | Verifies numerical solvers against Method of Manufactured Solutions (MMS) and canonical reference datasets. | `/golden-dataset-benchmark Run MMS convergence test on navier_stokes.py` |
+| **`/check-against-reference`** | Runs your solver on Kepler's equation, Lane-Emden, the Sod shock tube or Robertson kinetics (or compares with your golden data) and exits non-zero unless it matches the documented reference within the stated tolerance. Measures observed order of convergence (`convergence-ode`, `convergence-bvp`), and with `--repeat 2` fails a non-deterministic solver. In `reference-checks.json` checks can rebuild references from source with pinned SHA-256 hashes. Verified via append-only evidence log (`.verification/log.jsonl`); tolerance loosening without justification is withheld (exit 3). | `/check-against-reference sod --solver euler.py:solve --tol 0.05` |
+| **`/run-tests`** | Runs unittest or pytest, extracts exact framework counts, and records the result bound to the SHA-256 worktree hash; `fresh` verifies whether tests passed on current files. | `/run-tests unittest --start-dir tests` |
+| **`/test-ratchet`** | Parses test ASTs at a git baseline and current worktree, exiting 3 on unapproved looser tolerance, removed assertions/tests, new skip/xfail, or reduced parametrization. | `/test-ratchet --baseline-ref origin/main` |
 | **`/benchmark-checklist`** | Vets performance and scaling benchmarks (warmup, memory bandwidth limiters, error bars, and $L_2$ parity). | `/benchmark-checklist Profile vectorized vs. scalar solver` |
-| **`/setup-sciencestack`** | Configures per-role frontier models (`gemini-4-argon-high`, `claude-opus-5-5-high`, `claude-sonnet-5-5-high`). | `/setup-sciencestack` |
+| **`/setup-sciencestack`** | Configures per-role frontier models (`pro`, `flash`, `inherit`). | `/setup-sciencestack` |
 
 #### Method B: Subagent Delegation Architecture
 
 `scienceStack` delegates implementation and theoretical verification across 2 specialized subagents:
-- **[`science-master`](./agents/science-master.md)** (`Model: "flash"` — `gemini-4-argon-high` / `claude-sonnet-5-5-high`): High-throughput scientific code implementation and MMS test delegate.
-- **[`theory-reviewer`](./agents/theory-reviewer.md)** (`Model: "pro"` — `claude-opus-5-5-high`): Line-by-line mathematical proof, sign convention, tensor index, and conservation law auditor.
+- **[`science-master`](./agents/science-master.md)** (`model: flash` / `inherit`): High-throughput scientific code implementation and MMS test delegate.
+- **[`theory-reviewer`](./agents/theory-reviewer.md)** (`model: pro`): Line-by-line mathematical proof, sign convention, tensor index, and conservation law auditor.
 
-#### Method C: Standalone Verification Tools & Lifecycle Safety Hook
+#### Method C: Standalone Verification Tools & Lifecycle Safety Hooks
 
-- **Automatic Pre-Write Safety Hook ([`scripts/hook_pre_tool_guard.py`](./scripts/hook_pre_tool_guard.py) + [`scripts/inversion_detect.py`](./scripts/inversion_detect.py))**: Intercepts `write_file`, `edit_file`, and `run_command` calls on scientific code files at 0 token cost using **AST & import-aware analysis** (resolving module aliases such as `import scipy.linalg as la; la.inv` and `from numpy.linalg import inv` while ignoring comments, docstrings, and string literals) to block:
-  1. Explicit matrix inversion (`np.linalg.inv`, `scipy.linalg.inv`, `torch.linalg.inv`, `torch.inverse`) in favor of factorized linear solves (`solve(A, b)`).
-  2. Truncated $\pi$ literals (`3.14159`, `3.1416`) in favor of machine-precision `np.pi`, `math.pi`, or `M_PI`.
-  3. Mutable NumPy array defaults in Python function signatures (`def f(x=np.zeros(...)):`).
-- **Standalone CLI Tools & Unit Tests (60 tests)**:
+- **Automatic Pre-Write Safety Hook ([`scripts/hook_pre_tool_guard.py`](./scripts/hook_pre_tool_guard.py))**: Intercepts `write_file`, `edit_file`, and tool calls modifying scientific code and blocks (1) explicit matrix inversion (`np.linalg.inv`, `scipy.linalg.inv`, `from numpy.linalg import inv`, `torch.inverse`, resolved via AST import resolution), (2) truncated pi literals (`3.14159`, `3.1416`), and (3) mutable NumPy array default arguments. Comments, docstrings and strings mentioning these are untouched.
+- **Verification hooks (opt-in per project)**: In a git repository that uses scienceStack verification (contains `reference-checks.json`, `test-ratchet-approvals.json`, or a `.verification/` directory):
+  - **Test guard ([`scripts/hook_test_guard.py`](./scripts/hook_test_guard.py), PreToolUse)**: Prevents silent test weakening (tolerance loosening, test deletion, assertion removal, new skips/xfails) prior to file write/edit unless approved.
+  - **Edit recorder ([`scripts/hook_record_edit.py`](./scripts/hook_record_edit.py), PostToolUse)**: Tracks files modified during the active session.
+  - **Stop gate ([`scripts/hook_stop_gate.py`](./scripts/hook_stop_gate.py), StopGate)**: Enforces verification discipline before completion—verifying fresh passing reference checks, fresh ratchet passes, and up-to-date test runs.
+  - **Fail closed**: Hooks fail closed on invalid states. Set `SCIENCESTACK_HOOKS=off` to temporarily disable them.
+- **Standalone CLI Tools**:
 ```bash
 # Run automated AST numerical stability audit on scientific Python files
 python3 scripts/audit_numerical_ast.py path/to/solver.py
 
+# Check solver against canonical reference solutions
+python3 scripts/check_against_reference.py sod --solver euler.py:solve --tol 0.05
+
+# Run test ratchet check against git baseline
+python3 scripts/test_ratchet.py --baseline-ref origin/main
+
 # Run symplectic orbit integration & coordinate transform benchmarks
 python3 benchmarks/astronomy/symplectic_nbody.py
 python3 benchmarks/astronomy/coordinate_transforms.py
-
-# Run the 60-test verification suite (AST guard, reference benchmarks, flag & Python 3.10 portability checks)
-python3 -B -m unittest discover -s tests -v
 ```
 
 ---
@@ -97,6 +105,16 @@ python3 -B -m unittest discover -s tests -v
 
 ---
 
-## 3. License
+## 3. Tests
+
+```bash
+pytest tests/   # 594 tests: reference checks, convergence orders, safety hooks, stop gate, ratchet, evidence ledger, AST auditor, MMS/Jacobian generators, reference benchmarks
+```
+
+Reference benchmarks (see the docstring of `tests/test_science_tools.py` for sources): Sod shock tube star state (Toro 2009, Table 4.1), Lane-Emden zeros, Kepler/N-body invariants, Robertson mass conservation.
+
+Manual: [`docs/scienceStack_manual.pdf`](./docs/scienceStack_manual.pdf) (LaTeX source alongside).
+
+## 4. License
 
 MIT License. Maintained as part of the Antigravity scientific computing ecosystem alongside `theoryExtractor`, `fortranBridge`, and `cppBridge`.

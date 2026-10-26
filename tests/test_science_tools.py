@@ -185,9 +185,43 @@ class BenchmarkTests(unittest.TestCase):
         self.assertLess(float(re.search(r"Mass Drift[^:]*:\s+([\d.e+-]+)", out).group(1)), 1e-12)
 
 
+class DocumentedBenchmarkValues(unittest.TestCase):
+    """Numbers quoted in the benchmark files' comments and docstrings must match the independently verified values
+    (regression: the Robertson comment once said y1 ~ 0.208 at t = 1e5, and the Lane-Emden docstring gave omega_0 as
+    2 sqrt(6) / 3 next to the correct decimal 4.898979)."""
+
+    def test_robertson_comment_matches_the_reference_values(self):
+        import check_against_reference as car
+        text = (ROOT / "benchmarks" / "kinetics" / "robertson_reference.py").read_text()
+        match = re.search(r"# y1 = ([\d.e+-]+), y2 = ([\d.e+-]+), y3 = ([\d.e+-]+)", text)
+        self.assertIsNotNone(match, "the t = 1e5 reference values are no longer stated")
+        for quoted, reference in zip(match.groups(), car.ROBERTSON[100000.0]):
+            self.assertAlmostEqual(float(quoted) / reference, 1.0, delta=1e-5)
+        self.assertNotIn("0.208", text)
+
+    def test_the_robertson_demo_assertions_agree_with_the_reference_values(self):
+        import check_against_reference as car
+        y1, y3 = car.ROBERTSON[100000.0][0], car.ROBERTSON[100000.0][2]
+        text = (ROOT / "benchmarks" / "kinetics" / "robertson_reference.py").read_text()
+        self.assertAlmostEqual(float(re.search(r'res\["y1"\] - ([\d.]+)\)', text).group(1)), y1, delta=1e-6)
+        self.assertAlmostEqual(float(re.search(r'res\["y3"\] - ([\d.]+)\)', text).group(1)), y3, delta=1e-6)
+
+    def test_lane_emden_omega0_statement(self):
+        import math
+        text = (ROOT / "benchmarks" / "astronomy" / "lane_emden_solver.py").read_text()
+        match = re.search(r"\\omega_0 = -\\xi_1\^2 \\theta'\(\\xi_1\) = 2\\sqrt\{6\} \\approx ([\d.]+)", text)
+        self.assertIsNotNone(match, "omega_0 is no longer stated as 2 sqrt(6)")
+        self.assertAlmostEqual(float(match.group(1)), 2.0 * math.sqrt(6.0), delta=1e-6)
+        self.assertNotIn(r"\frac{2\sqrt{6}}{3}", text)
+
+
 class DocumentationTests(unittest.TestCase):
     def test_documented_flags_exist_for_every_script(self):
-        docs = list((ROOT / "rules").glob("*.md")) + [ROOT / "README.md"]
+        docs = [ROOT / "README.md"]
+        if (ROOT / "rules" / "directives.md").exists():
+            docs.append(ROOT / "rules" / "directives.md")
+        if (ROOT / "rules" / "AGENTS.md").exists():
+            docs.append(ROOT / "rules" / "AGENTS.md")
         docs += list((ROOT / "skills").glob("*/SKILL.md")) + list((ROOT / "agents").glob("*.md"))
         docs += list((ROOT / "skills" / "science-mode").glob("*/*.md")) + list((ROOT / "references").glob("*.md"))
         cache = {}
@@ -199,7 +233,13 @@ class DocumentationTests(unittest.TestCase):
                     if "argparse" not in path.read_text():
                         continue
                     if script not in cache:
-                        cache[script] = set(re.findall(r"--[a-z][a-z0-9-]*", run(path, "--help").stdout))
+                        top = run(path, "--help").stdout
+                        flags = set(re.findall(r"--[a-z][a-z0-9-]*", top))
+                        # a script with subcommands ({list,run,...}) documents its flags in each subcommand's help
+                        for group in re.findall(r"\{([a-z][a-z0-9_,-]*)\}", top):
+                            for sub in group.split(","):
+                                flags |= set(re.findall(r"--[a-z][a-z0-9-]*", run(path, sub, "--help").stdout))
+                        cache[script] = flags
                     for flag in re.findall(r"(?<![\w-])--[a-z][a-z0-9-]*", line.split(f"{script}.py", 1)[-1]):
                         self.assertIn(flag, cache[script], f"{doc.name}: {script}.py {flag}")
 

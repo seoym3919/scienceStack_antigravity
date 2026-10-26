@@ -1,0 +1,78 @@
+{
+  "schema": "reference-checks/1",
+  "description": "Copy to your project root as reference-checks.json. Paths are repo-relative: no '..', no absolute paths. Replace the all-zero pins with `sha256sum` of your own files.",
+  "checks": [
+    {
+      "id": "kepler-solver",
+      "rationale": "Our Kepler solver must reproduce the root of M = E - e sin E to 1e-12 rad (the benchmark's default).",
+      "benchmark": "kepler",
+      "solver": "src/orbits/kepler.py:solve_kepler"
+    },
+    {
+      "id": "polytrope-rk4",
+      "rationale": "RK4 with step 1e-3 reaches ~1e-6 on xi_1; 1e-4 leaves a margin for the series start at xi = 1e-4.",
+      "benchmark": "lane-emden",
+      "solver": "src/stars/polytrope.py:solve",
+      "tol": 0.0001
+    },
+    {
+      "id": "heat-golden",
+      "rationale": "Golden heat profile from the 2024-03 reference run (tests/golden/README.md); rtol is the run-to-run spread.",
+      "compare": {
+        "ref": "tests/golden/heat.txt",
+        "test": "build/heat.out",
+        "rtol": 1e-09,
+        "atol": 1e-12
+      }
+    },
+    {
+      "id": "heat-port",
+      "rationale": "The Python port must reproduce the legacy Fortran heat code; the reference is rebuilt, not trusted.",
+      "compare": {
+        "ref": "tests/golden/heat.out",
+        "rtol": 1e-13,
+        "atol": 0,
+        "ref_from": {
+          "steps": [
+            [
+              "gfortran",
+              "-O0",
+              "-ffp-contract=off",
+              "legacy/heat.f90",
+              "-o",
+              "{work}/heat"
+            ],
+            [
+              "{work}/heat"
+            ]
+          ],
+          "output": "stdout",
+          "pinned": {
+            "legacy/heat.f90": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          "reproduce_rtol": 1e-13,
+          "reproduce_atol": 0,
+          "record_versions": [
+            [
+              "gfortran",
+              "--version"
+            ]
+          ],
+          "timeout_s": 300
+        },
+        "test_from": {
+          "steps": [
+            [
+              "python3",
+              "src/heat.py"
+            ]
+          ],
+          "output": "stdout",
+          "pinned": {
+            "src/heat.py": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        }
+      }
+    }
+  ]
+}

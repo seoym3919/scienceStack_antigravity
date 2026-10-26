@@ -9,6 +9,9 @@ Walks Python Abstract Syntax Trees (AST) to detect numerical vulnerabilities:
 3. Warning: Single-precision float32 casting in simulation/numerical kernels.
 4. Warning: Truncated pi literals (3.14159 / 3.1416) and mutable NumPy array default arguments.
 5. Quality: Functions with numerical/mathematical signatures missing continuous LaTeX equation docstrings.
+6. Warning: Nondeterminism (see random_detect.py): draws from a global random state the file never seeds
+   (UNSEEDED_RANDOM_DRAW), generators created without a seed (UNSEEDED_GENERATOR), seeds taken from the clock, the
+   process id or OS entropy (NONDETERMINISTIC_SEED), and sources that cannot be seeded (NONDETERMINISTIC_SOURCE).
 
 Usage:
     python3 scripts/audit_numerical_ast.py <file_or_directory> [--strict] [--json]
@@ -22,6 +25,7 @@ from typing import List, Dict, Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from inversion_detect import import_aliases, is_inversion_call, is_truncated_pi, mutable_array_default  # noqa: E402
+from random_detect import find_nondeterminism  # noqa: E402
 
 
 class NumericalASTVisitor(ast.NodeVisitor):
@@ -158,6 +162,9 @@ def audit_file(path: str) -> List[Dict[str, Any]]:
         tree = ast.parse(source, filename=path)
         visitor = NumericalASTVisitor(path, tree)
         visitor.visit(tree)
+        for finding in find_nondeterminism(tree, visitor.aliases):
+            visitor.add_issue("WARNING", finding.node, finding.code, finding.message, finding.suggestion)
+        visitor.issues.sort(key=lambda i: (i["line"], i["col"]))
         return visitor.issues
     except Exception as e:
         return [{

@@ -34,9 +34,9 @@
     citecolor=accentteal,
     urlcolor=secondaryblue,
     pdfauthor={scienceStack Engineering Group},
-    pdftitle={scienceStack: Rigorous Agentic Engineering and Theoretical Computing in Antigravity},
+    pdftitle={scienceStack: Rigorous Scientific Engineering Workflows for Google Antigravity},
     pdfsubject={Scientific Computing, Autonomous AI Agents, Equation Verification},
-    pdfkeywords={Antigravity, scienceStack, numerical stability, equation provenance, golden benchmarks}
+    pdfkeywords={Google Antigravity, scienceStack, numerical stability, equation provenance, golden benchmarks}
 }
 
 % Code Listing configuration
@@ -62,7 +62,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\small\color{secondaryblue}\textsf{\nouppercase{\leftmark}}}
-\fancyhead[R]{\small\color{secondaryblue}\textsf{scienceStack Manual (v0.15.29)}}
+\fancyhead[R]{\small\color{secondaryblue}\textsf{scienceStack Manual (v0.21.1)}}
 \fancyfoot[C]{\thepage}
 \renewcommand{\headrulewidth}{0.5pt}
 
@@ -95,7 +95,7 @@
     colback=primarynavy!5!white,
     colframe=primarynavy,
     fonttitle=\bfseries\sffamily,
-    title={Antigravity Runtime Directive: #1},
+    title={Antigravity Directive: #1},
     enhanced,
     attach boxed title to top left={yshift=-2mm, xshift=4mm},
     boxed title style={colback=primarynavy},
@@ -135,51 +135,40 @@
 
 \begin{document}
 
-% -------------------------------------------------------------
-% Title Page
-% -------------------------------------------------------------
 \begin{titlepage}
     \centering
     \vspace*{1.5cm}
-    
     {\Huge \bfseries \color{primarynavy} scienceStack}\\[0.4cm]
-    {\Large \bfseries \color{secondaryblue} Rigorous Agentic Engineering \& Theoretical Computing}\\[0.2cm]
-    {\large \textsf{A Deep Integration and Operational Manual for Google Antigravity}}\\[1.5cm]
-    
+    {\Large \bfseries \color{secondaryblue} Rigorous Scientific Engineering Workflows}\\[0.2cm]
+    {\large \textsf{Operational Manual for the Google Antigravity Plugin}}\\[1.5cm]
     \rule{\linewidth}{1.5pt}\\[0.6cm]
     {\large \textbf{Plugin Specification \& Operational Guide}}\\[0.2cm]
-    {\normalsize Version 0.15.29 --- October 2026}\\[0.6cm]
+    {\normalsize Version 0.21.1 --- October 2026}\\[0.6cm]
     \rule{\linewidth}{1.5pt}\\[2.5cm]
-    
     \begin{minipage}{0.48\textwidth}
         \begin{flushleft} \large
-            \textbf{Core Architecture:}\\
-            35 Top-Level Skills\\
-            30 Bundled Core Principles\\
-            3 Dedicated Subagents\\
-            1 Unified Runtime Rule\\
-            1 Pre-Tool Safety Hook
+            \textbf{Components:}\\
+            12 Skills\\
+            6 Playbooks, 6 Principles\\
+            2 Subagents\\
+            4 Lifecycle Hooks\\
+            1 Directive Rule File
         \end{flushleft}
     \end{minipage}
     \hfill
     \begin{minipage}{0.48\textwidth}
         \begin{flushright} \large
-            \textbf{Theoretical Domains:}\\
-            PDEs, CFD, Finite Elements\\
-            Stiff ODE Kinetics, MD\\
-            Quantum Systems, Linear Algebra
+            \textbf{Domains:}\\
+            PDEs, CFD, orbital mechanics\\
+            Stiff ODE kinetics\\
+            Numerical linear algebra
         \end{flushright}
     \end{minipage}
-    
     \vfill
-    
-    {\small \textsf{Adapted from the foundational \texttt{pstack} architecture by Lauren Tan (poteto) at Cursor.}\\
-    \textsf{Expanded for rigorous theoretical fidelity, dimensional analysis, and numerical verification in Google Antigravity.}}\\[0.8cm]
+    {\small \textsf{Adapted from the \texttt{pstack} architecture by Lauren Tan (poteto) at Cursor.}\\
+    \textsf{Specialized for equation provenance, dimensional analysis, and numerical verification in Google Antigravity.}}\\[0.8cm]
 \end{titlepage}
 
-% -------------------------------------------------------------
-% Front Matter
-% -------------------------------------------------------------
 \pagenumbering{roman}
 \tableofcontents
 \newpage
@@ -187,873 +176,215 @@
 \section*{Executive Summary}
 \addcontentsline{toc}{chapter}{Executive Summary}
 
-In traditional software engineering, artificial intelligence coding assistants often generate superficial code that satisfies local syntax tests but fails under boundary conditions. In \textbf{computational science and engineering}, the cost of generated ``slop'' is catastrophic. A flipped negative sign in a Laplacian diffusion operator turns a dissipative physical process into an exponentially explosive numerical instability. A subtle catastrophic cancellation in floating-point subtraction silently destroys the condition number of a linear solve. An unverified normalization constant renders quantum wavefunctions non-unitary.
-
-\textbf{scienceStack} is an Antigravity-native agentic framework engineered specifically to eliminate ungrounded code in scientific and mathematical computing. Originating from the battle-tested \texttt{pstack} architecture created by Lauren Tan at Cursor, \texttt{scienceStack} completely re-architects the agent pairing paradigm for Google Antigravity:
+Generated code that satisfies local tests can still be wrong in the ways that matter to computational science: a flipped sign in a diffusion operator, an off-by-one in a stencil, or an explicit matrix inverse that squares the condition number. \textbf{scienceStack} packages a small set of enforceable rules, workflows, and tools for Google Antigravity that target exactly these failures. It is organized around six principles:
 \begin{enumerate}[itemsep=2pt]
-    \item \textbf{Theoretical Provenance}: Every formula implemented by an agent must be explicitly derived in LaTeX docstrings, cite canonical literature equations, and define coordinate metrics and sign conventions.
-    \item \textbf{Dimensional Discipline}: Every equation is verified for physical dimension matching ($[\mathrm{LHS}] = [\mathrm{RHS}]$), and transcendental arguments ($\exp, \ln, \sin$) are enforced to be dimensionless.
-    \item \textbf{Conservation Law Guarantees}: Numerical schemes are required to track and conserve physical invariants (energy, mass, momentum, probability norm) within specified tolerance thresholds.
-    \item \textbf{Numerical Stability First}: The framework strictly bans naive mathematical implementations (e.g., explicit matrix inversion $\mathbf{A}^{-1}\mathbf{b}$, unscaled floating-point differences) in favor of conditioned algorithms (\texttt{solve(A, b)}, \texttt{logsumexp}, \texttt{expm1}).
-    \item \textbf{Analytical Limits \& Golden Datasets}: Every scientific kernel must be validated against closed-form exact solutions, the Method of Manufactured Solutions (MMS), or canonical industry benchmark datasets (e.g., Sod shock tube, Taylor-Green vortex, Robertson stiff ODEs).
-    \item \textbf{Physics-Modular Architecture}: Physical laws, equations of state, forces, and rate equations must be isolated into dedicated, driver-agnostic modules (\texttt{physics/}) so other simulation codes and external solvers can invoke them directly without coupling to numerical time steppers or spatial grids.
+    \item \textbf{Equation provenance}: every implemented formula carries its continuous LaTeX form, a literature citation, units, and sign conventions.
+    \item \textbf{Dimensional discipline}: both sides of every equation have the same dimensions; arguments of transcendental functions are dimensionless.
+    \item \textbf{Numerical stability first}: no explicit inversion, guarded denominators, and \texttt{log1p}/\texttt{expm1} for small arguments.
+    \item \textbf{Conservation laws}: Hamiltonian systems use symplectic integrators; energy, momentum, and angular momentum are tracked in tests.
+    \item \textbf{Physics-modular architecture}: pure physical laws live in stateless modules, decoupled from time steppers, meshes, and I/O.
+    \item \textbf{Analytical limits and manufactured solutions}: solvers are verified against closed-form solutions or the Method of Manufactured Solutions with explicit error norms.
 \end{enumerate}
-
-With 35 top-level skills, 30 bundled scientific and software engineering principles, three specialized subagent personas (\texttt{science-master}, \texttt{theory-reviewer}, and \texttt{comment-master}), and native Antigravity asynchronous orchestration, \texttt{scienceStack} enables fearless parallel development while upholding the mathematical rigor demanded by modern science.
 
 \newpage
 \pagenumbering{arabic}
 
-% -------------------------------------------------------------
-% Chapter 1: Installation and How to Use
-% -------------------------------------------------------------
 \chapter{Installation and How to Use}
 
 \section{Installing the Plugin}
-
-\texttt{scienceStack} conforms strictly to the Agent Plugins 1.0.0 Specification. It can be installed globally into Antigravity or linked directly into project workspaces.
-
-\subsection{Global Installation in Antigravity}
-To validate compliance and install \texttt{scienceStack} globally across all Antigravity sessions on your machine, execute:
+The plugin complies with Agent Plugins 1.0.0; its root manifest is \texttt{plugin.json}.
 \begin{lstlisting}[language=bash]
-# 1. Validate strict compliance against Agent Plugins 1.0.0
+# 1. Validate compliance with Agent Plugins 1.0.0 (Strict mode)
 agy plugin validate /home/seo3919/AI_skills/scienceStack_antigravity --strict
 
-# 2. Install globally into Antigravity
+# 2. Install globally in Antigravity
 agy plugin install /home/seo3919/AI_skills/scienceStack_antigravity
-\end{lstlisting}
 
-\subsection{Verification of Installed Components}
-Confirm that the plugin and its agents are active:
+# Or workspace-local:
+# Place scienceStack_antigravity in .agents/plugins/sciencestack
+\end{lstlisting}
+Verify installation status:
 \begin{lstlisting}[language=bash]
 agy plugin list
-# - sciencestack (enabled, 0.15.29)
-#   Components: 9 skills, 2 agents, 1 rule, 1 hook
-
-agy agent
-# science-master
-# theory-reviewer
+# - sciencestack (enabled, 0.21.1)
+#   Components: 12 skills, 2 agents, 1 rule, 4 hooks
 \end{lstlisting}
 
-\section{Quickstart and Usage Workflows}
-
-Get started with \texttt{scienceStack} in two straightforward steps:
-\begin{enumerate}
-    \item Run \texttt{/setup-sciencestack} to configure your reasoning budget and select model tiers for delegate workers versus theoretical auditors.
-    \item Invoke \texttt{/science-mode} at the beginning of any development task requiring mathematical or numerical rigor.
-\end{enumerate}
-
-\section{Antigravity Slash Commands Reference}
-\begin{itemize}
-    \item \texttt{/science-mode <task>}: Master workflow orchestrator selecting from 6 specialized scientific playbooks to plan, execute, verify, and document scientific algorithms.
-    \item \texttt{/setup-sciencestack}: Interactive model and reasoning budget configuration wizard.
-    \item \texttt{/astronomy-computing <task>}: Specialized solver guidelines for celestial mechanics, symplectic orbits, and coordinate transformations.
-    \item \texttt{/accelerated-scientific-computing <task>}: Directives for cache-line contiguity, SIMD vectorization, and JAX GPU acceleration.
-    \item \texttt{/scientific-equation-verifier <file>}: 7-point audit verifying discrete code against continuous LaTeX formulas, sign conventions, and normalizations.
-    \item \texttt{/numerical-stability-audit <file>}: Audits solvers for explicit matrix inversion, condition number blowup, and stiff ODE instability.
-    \item \texttt{/precision-audit <file>}: Automated audit for catastrophic floating-point cancellation and mixed-precision drift.
-    \item \texttt{/golden-dataset-benchmark <task>}: Verifies solvers against Method of Manufactured Solutions (MMS) and reference datasets.
-    \item \texttt{/benchmark-checklist <task>}: Vets performance and scaling benchmarks.
+\section{Skills}
+Skills can be triggered via interactive slash commands or dynamically by Antigravity agents:
+\begin{itemize}[itemsep=2pt]
+    \item \texttt{/science-mode <task>}: master workflow. Selects exactly one of six playbooks and enforces the six principles. User-invoked.
+    \item \texttt{/setup-sciencestack}: writes per-role model choices to configuration. User-invoked.
+    \item \texttt{astronomy-computing}: Kepler solvers, symplectic N-body dynamics, SO(3) coordinate frames.
+    \item \texttt{accelerated-scientific-computing}: memory layout, SIMD vectorization, and precision guards.
+    \item \texttt{check-against-reference}: runs the user's solver on Kepler's equation, Lane-Emden, the Sod shock tube, or Robertson kinetics, or compares its output with golden data, through \texttt{scripts/check\_against\_reference.py}. The script decides (exit status 0 pass, 1 fail, 2 nothing checked, 3 verdict withheld or manifest weakened); \texttt{convergence-ode} and \texttt{convergence-bvp} measure observed order of convergence; \texttt{--repeat} detects nondeterminism; every run appends to a SHA-256 bound evidence log (\texttt{.verification/log.jsonl}); tolerance loosening after failure on unchanged files is withheld (exit 3) unless justified; \texttt{run-manifest} re-runs committed manifests.
+    \item \texttt{run-tests}: runs unittest or pytest through \texttt{scripts/run\_tests.py}, extracts exact counts from framework internals, fails when nothing ran or everything was skipped, and records results bound to the worktree hash; \texttt{run\_tests.py fresh} confirms whether tests passed on current files.
+    \item \texttt{test-ratchet}: \texttt{scripts/test\_ratchet.py --baseline-ref REF} parses ASTs of test files against a git baseline and exits 3 on unapproved looser tolerance, removed tests, fewer assertions, new skip/xfail, or fewer parametrize cases; approvals go in \texttt{test-ratchet-approvals.json}.
+    \item \texttt{numerical-stability-audit}: audits explicit matrix inversion, cancellation, and unseeded random number generator states via \texttt{scripts/audit\_numerical\_ast.py}.
+    \item \texttt{precision-audit}, \texttt{scientific-equation-verifier}, \texttt{golden-dataset-benchmark}, \texttt{benchmark-checklist}: audit and verification skills loaded on demand.
 \end{itemize}
 
-\section{Model Configuration and Reasoning Budgets}
+\section{Runtime Directives}
+Directives are defined in \texttt{rules/AGENTS.md}: the core directives (provenance, stability, symplectic integration, modularity, reference checks, test ratchet, evidence logs) and absolute script locations.
 
-\subsection{The Role-Based Model Architecture}
-Scientific workflows require heterogeneous cognitive capabilities. Compiling numerical kernels, writing unit tests, and verifying syntax requires fast, low-latency execution. Conversely, proving coordinate transformation invariance, analyzing ill-conditioned eigenspaces, and architecting modular solver pipelines requires maximum reasoning depth.
+\chapter{Architecture}
 
-\texttt{scienceStack} defines clear roles mapped to Antigravity model tiers:
-\begin{table}[h!]
+\section{Subagents and Models}
+\begin{table}[h]
 \centering
 \small
-\begin{tabularx}{\textwidth}{p{3.2cm} p{4.2cm} p{2.5cm} X}
+\begin{tabular}{llll}
 \toprule
-\textbf{Role} & \textbf{Default Model} & \textbf{Antigravity Tier} & \textbf{Typical Tasks} \\
+\textbf{Agent} & \textbf{Model} & \textbf{Tools} & \textbf{Role} \\
 \midrule
-\texttt{science-master} & \texttt{gemini-4-argon-high} / \texttt{claude-sonnet-5-5-high} & \texttt{Model: "flash"} & Kernels, MMS tests, refactoring, benchmark runners \\
-\texttt{theory-reviewer} & \texttt{claude-opus-5-5-high} & \texttt{Model: "pro"} & Equation verification, sign checking, invariant bounds \\
-\texttt{fast-worker} & \texttt{gemini-4-argon-medium} & \texttt{Model: "flash\_lite"} & Linting, single-fixture test loops, syntax checks \\
+\texttt{science-master} & \texttt{flash} / \texttt{inherit} & all & kernels, MMS tests, refactors, benchmark runners \\
+\texttt{theory-reviewer} & \texttt{pro} & read-only & line-by-line audit of equations, signs, index order, invariants \\
 \bottomrule
-\end{tabularx}
-\caption{Model tier mapping in Antigravity.}
-\label{tab:models}
+\end{tabular}
+\caption{Subagents. \texttt{theory-reviewer} operates in a read-only context.}
 \end{table}
 
-\subsection{Interactive Setup with /setup-sciencestack}
-Run the interactive setup skill to configure model preferences and reasoning budgets:
-\begin{lstlisting}
-/setup-sciencestack
-\end{lstlisting}
-The skill queries the available models in your Antigravity environment, prompts for your target reasoning budget (\texttt{small}, \texttt{medium}, \texttt{large}, \texttt{unlimited}), and persists the configuration rule to:
-\begin{center}
-    \texttt{\textasciitilde/.gemini/config/rules/scstack-models.md}
-\end{center}
-
-\section{Standalone Verification Tools, AST Hook \& Unit Test Suite}
-The PreToolUse lifecycle hook (\texttt{scripts/hook\_pre\_tool\_guard.py}) and AST auditor (\texttt{scripts/audit\_numerical\_ast.py}) share the import-aware detection engine in \texttt{scripts/inversion\_detect.py}, resolving Python import aliases (\texttt{import scipy.linalg as la; la.inv(A)} and \texttt{from numpy.linalg import inv}) while ignoring comments and docstrings across \texttt{write\_file}, \texttt{edit\_file}, and \texttt{run\_command}.
+\section{Where Things Live}
 \begin{lstlisting}[language=bash]
-# Run automated AST safety audit on numerical code
-python3 scripts/audit_numerical_ast.py path/to/solver.py
-
-# Run symplectic orbit integration benchmark suite
-python3 benchmarks/astronomy/symplectic_nbody.py
-
-# Run the 60-test verification suite (AST guard, reference benchmarks, flag & Python 3.10 portability)
-python3 -B -m unittest discover -s tests -v
+plugin.json                     Agent Plugins 1.0.0 manifest
+hooks/hooks.json                PreToolUse, PostToolUse, and StopGate hooks
+rules/AGENTS.md                 Antigravity runtime directives
+agents/                         science-master, theory-reviewer
+references/                     compact delegate principles (read by science-master)
+skills/science-mode/            playbooks/ (6) and principles/ (6)
+skills/                         check-against-reference, run-tests, test-ratchet, ...
+scripts/                        hooks, AST auditor, MMS and Jacobian generators
+benchmarks/                     analytic reference solvers
+tests/                          unit and integration tests
 \end{lstlisting}
 
-% -------------------------------------------------------------
-% Chapter 2: System Overview and Core Philosophy
-% -------------------------------------------------------------
-\chapter{System Overview and Core Philosophy}
-
-\section{The Crisis of Slop in Scientific Computing}
-
-Modern Large Language Models (LLMs) excel at generating idiomatic code snippets, web components, and routine test scripts. However, when applied to computational physics, numerical linear algebra, biomechanics, or quantum chemistry, unassisted LLMs exhibit severe failure modes:
-\begin{itemize}[itemsep=4pt]
-    \item \textbf{Hallucinated Equations}: Formulating plausible-looking discrete approximations that lack theoretical backing or violate fundamental symmetries.
-    \item \textbf{Catastrophic Floating-Point Cancellation}: Evaluating expressions like $f(x) = \sqrt{x+1} - \sqrt{x}$ or $(1 - \cos x)$ for small $x$ without using Taylor series or conditioned algebraic identities, leading to severe loss of significance.
-    \item \textbf{Inversion of Ill-Conditioned Matrices}: Emitting $\mathbf{x} = \mathbf{A}^{-1}\mathbf{b}$ via \texttt{numpy.linalg.inv(A) @ b} instead of direct LU/Cholesky/QR solvers, squaring the matrix condition number $\kappa(\mathbf{A})$.
-    \item \textbf{Violation of Noetherian Invariants}: Implementing time-integration schemes (such as standard forward Euler) for conservative Hamiltonian systems, causing artificial energy blowup over time.
-    \item \textbf{Narrative Noise in Codebases}: Polluting clean mathematical code with conversational comments, redundant stubs, and defensive workarounds that obscure algorithmic clarity.
-\end{itemize}
-
-\section{The scienceStack Philosophy}
-
-\texttt{scienceStack} operates on a single immutable maxim:
-\begin{center}
-    \textbf{\Large ``If you want to go fast, go deep first.''}
-\end{center}
-Throughput without theoretical accuracy is counterproductive. Generating ten thousand lines of unverified simulation code produces negative value if the underlying discretization violates conservation laws. 
-
-\subsection{Fearless Parallelism}
-In traditional development, delegating work to multiple concurrent background agents leads to merge conflicts, architectural drift, and silent bugs. \texttt{scienceStack} makes parallelism safe by establishing strict entry contracts, formal verification suites, and autonomous review panels:
-\begin{itemize}
-    \item \textbf{Isolated Workspaces}: Concurrent subagents execute inside isolated Git branches or worktrees (\texttt{Workspace: "branch"}).
-    \item \textbf{Theoretical Gatekeepers}: No scientific kernel is merged into the primary branch until audited by the independent \texttt{theory-reviewer} subagent.
-    \item \textbf{Objective Golden Benchmarks}: Work is considered complete only when empirical convergence rates $O(h^p)$ or relative $L_2$ error thresholds against reference datasets are demonstrated.
-\end{itemize}
-
-\section{Architectural Heritage: From pstack to scienceStack}
-
-The foundation of \texttt{scienceStack} is the \texttt{pstack} plugin developed by Lauren Tan for Cursor. \texttt{pstack} pioneered autonomous subagent orchestration, dynamic playbook matching, and strict anti-slop guidelines.
-
-In \texttt{scienceStack\_antigravity}, this framework has been completely re-engineered for the Google Antigravity runtime and specialized for scientific and mathematical computing:
-\begin{table}[h!]
-\centering
-\small
-\begin{tabularx}{\textwidth}{p{3.5cm} p{5.5cm} X}
-\toprule
-\textbf{Component} & \textbf{Original pstack (Cursor)} & \textbf{scienceStack (Antigravity)} \\
-\midrule
-Primary Orchestrator & \texttt{poteto-mode} & \texttt{science-mode} \\
-Worker Delegate & \texttt{poteto-agent} & \texttt{science-master} \\
-Theoretical Auditor & \textit{None} & \texttt{theory-reviewer} \\
-Subagent Dispatch & Synchronous / Cursor \texttt{Task} & Asynchronous \texttt{invoke\_subagent} \\
-Decision Logging & Local TSV / commit notes & Antigravity Brain Artifacts \\
-Scientific Playbooks & Generic feature/bugfix & \texttt{equation-implementation}, \texttt{numerical-verification} \\
-Benchmark Suite & Generic testing & \texttt{golden-dataset-benchmark} \\
-\bottomrule
-\end{tabularx}
-\caption{Evolution from Cursor \texttt{pstack} to Antigravity \texttt{scienceStack}.}
-\label{tab:evolution}
-\end{table}
-
-% -------------------------------------------------------------
-% Chapter 3: The Specialized Subagent Ecosystem
-% -------------------------------------------------------------
-\chapter{The Specialized Subagent Ecosystem}
-
-\section{Overview of Agent Roles}
-
-Antigravity executes subagents asynchronously in background worker processes. \texttt{scienceStack} provides two purpose-built subagent personas that interact to implement and audit scientific software.
-
-\begin{figure}[h!]
-\centering
-\begin{tcolorbox}[colback=white,colframe=secondaryblue,title=\textbf{The scienceStack Subagent Architecture}]
-\centering
-\textbf{Primary Orchestrator} (\texttt{/science-mode})\\[0.2cm]
-$\Downarrow$ Spawns Worker Delegate\\[0.2cm]
-\textbf{\texttt{science-master}} (\texttt{Model: "flash"} --- \texttt{gemini-4-argon-high} / \texttt{claude-sonnet-5-5-high})\\[0.1cm]
-{\small (Reads compact delegate principles, implements equations and MMS tests)}\\[0.3cm]
-$\Downarrow$\\[0.2cm]
-\textbf{\texttt{theory-reviewer}} (\texttt{Model: "pro"} --- \texttt{claude-opus-5-5-high})\\[0.1cm]
-{\small (Audits LaTeX provenance, signs, dimensions, and conservation laws)}
-\end{tcolorbox}
-\caption{Interaction model among scienceStack subagents.}
-\end{figure}
-
-\section{science-master: The Scientific Implementation Delegate}
-\textbf{File}: \texttt{agents/science-master.md}\\
-\textbf{Invocation}: \texttt{invoke\_subagent(\{ TypeName: "science-master", Role: "...", Prompt: "..." \})}
-
-\texttt{science-master} is the rigorous implementation engine. Whenever \texttt{science-mode} delegates a concrete coding assignment—such as implementing a finite difference stencil, constructing a sparse stiffness matrix, or writing an integration harness—it spawns \texttt{science-master}.
-
-\begin{directivebox}{science-master Operational Protocol}
-Before executing any file write or command, \texttt{science-master} is mandated to:
-\begin{enumerate}
-    \item Read \texttt{skills/science-mode/SKILL.md} in full, including its inline Principles index.
-    \item Check out an isolated branch (\texttt{Workspace: "branch"}) to protect the main working directory.
-    \item Formulate continuous equations in LaTeX before implementing discrete algorithms.
-    \item Run test fixtures locally and return a consolidated diff summary to the parent orchestrator.
-\end{enumerate}
-\end{directivebox}
-
-\section{theory-reviewer: The Mathematical Auditor}
-\textbf{File}: \texttt{agents/theory-reviewer.md}\\
-\textbf{Invocation}: \texttt{invoke\_subagent(\{ TypeName: "theory-reviewer", Model: "pro", ... \})}
-
-\texttt{theory-reviewer} is a specialized, read-only auditor that acts as an adversarial theoretical reviewer. It never writes production code; its sole responsibility is auditing proposed diffs against governing physical laws and equations.
-
-\subsection{The 6-Point Theoretical Audit Checklist}
-When auditing a diff, \texttt{theory-reviewer} executes a rigorous verification pass:
-\begin{enumerate}
-    \item \textbf{Continuous Equation Provenance}: Does every mathematical function specify its continuous formulation in LaTeX in docstrings, citing the textbook or paper equation number?
-    \item \textbf{Coordinate System \& Sign Conventions}: Are spatial metrics ($g_{ij}$), coordinate systems (Cartesian, cylindrical, spherical), and sign conventions documented? For instance, in diffusion:
-    \begin{equation}
-        \frac{\partial u}{\partial t} = +\alpha \nabla^2 u \quad (\text{stable diffusion, } \alpha > 0)
-    \end{equation}
-    A negative sign would represent reverse-time anti-diffusion, causing ill-posed exponential growth.
-    \item \textbf{Dimensional Homogeneity}: Do physical units match on both sides of every assignment? Are arguments to transcendental functions strictly dimensionless:
-    \begin{equation}
-        \exp\left(-\frac{E_a}{k_B T}\right) \quad \text{where } \left[\frac{E_a}{k_B T}\right] = 1
-    \end{equation}
-    \item \textbf{Tensor and Index Order}: Are multi-dimensional arrays adhering to explicit indexing standards (row-major vs column-major, Einstein summation)?
-    \item \textbf{Normalization Constants}: Are integral normalizations preserved? E.g., for Fourier transforms:
-    \begin{equation}
-        \hat{f}(\xi) = \int_{-\infty}^{\infty} f(x) e^{-2\pi i x \xi} dx \implies f(x) = \int_{-\infty}^{\infty} \hat{f}(\xi) e^{2\pi i x \xi} d\xi
-    \end{equation}
-    Or probability densities: $\int_{\Omega} |\psi(\mathbf{x}, t)|^2 d\mathbf{x} \equiv 1$.
-    \item \textbf{Physical Invariant Conservation}: Does the discrete formulation preserve Noetherian invariants (mass, energy, momentum, symplecticity) over simulation time?
-\end{enumerate}
-
-% -------------------------------------------------------------
-% Chapter 4: The Six Core Scientific Principles
-% -------------------------------------------------------------
-\chapter{The Six Core Scientific Principles}
-
-\section{Principle 1: Equation Provenance and Formal Documentation}
-\textbf{Principle File}: \texttt{skills/science-mode/principles/equation-provenance.md}
-
-Every mathematical function or kernel in a scientific codebase must declare its provenance. Code without equation provenance is untestable against theory.
+\chapter{The Six Principles}
 
 \begin{principlebox}{Equation Provenance}
-Every scientific implementation must:
-\begin{enumerate}
-    \item State the continuous governing equation in LaTeX within the function docstring.
-    \item Cite the source paper or textbook with explicit chapter, page, or equation number.
-    \item Document coordinate system, metric tensor, and sign conventions.
-\end{enumerate}
+Document the governing equation in the docstring, for example
+\[ \frac{\partial u}{\partial t} = \alpha \nabla^2 u \quad [\mathrm{SI}], \]
+with its literature source, coordinate system, and sign convention. The AST auditor reports scientific functions whose docstring has no LaTeX equation.
 \end{principlebox}
-
-\subsection{Code Comparison: Bad vs. Compliant}
-\begin{lstlisting}[language=Python, caption={Non-compliant ungrounded function}]
-# Bad: No provenance, ambiguous variables, undocumented formula
-def calc_stress(e, nu, E):
-    return E / ((1 + nu) * (1 - 2*nu)) * ((1 - nu) * e[0] + nu * e[1])
-\end{lstlisting}
-
-\begin{lstlisting}[language=Python, caption={Compliant function with Equation Provenance}]
-def plane_strain_normal_stress(
-    strain_xx: float, 
-    strain_yy: float, 
-    youngs_modulus: float, 
-    poissons_ratio: float
-) -> float:
-    r"""
-    Compute normal stress \sigma_{xx} under isotropic linear elastic plane strain.
-
-    Governing Continuous Equation:
-    \begin{equation}
-        \sigma_{xx} = \frac{E}{(1+\nu)(1-2\nu)} \left[ (1-\nu)\varepsilon_{xx} + \nu\varepsilon_{yy} \right]
-    \end{equation}
-
-    Reference:
-        Timoshenko, S. P., & Goodier, J. N. (1970). "Theory of Elasticity", 
-        3rd ed., McGraw-Hill, Chapter 2, Eq. (11.3), p. 34.
-
-    Assumptions & Conventions:
-        - Coordinate System: Cartesian (x, y, z)
-        - Condition: Plane strain (\varepsilon_{zz} = \gamma_{xz} = \gamma_{yz} = 0)
-        - Sign Convention: Tensile stress is positive (> 0).
-    """
-    E, nu = youngs_modulus, poissons_ratio
-    coeff = E / ((1.0 + nu) * (1.0 - 2.0 * nu))
-    return coeff * ((1.0 - nu) * strain_xx + nu * strain_yy)
-\end{lstlisting}
-
-\section{Principle 2: Dimensional Discipline \& Scaling}
-\textbf{Principle File}: \texttt{skills/science-mode/principles/dimensional-discipline.md}
-
-Physical quantities possess dimensions in fundamental SI units ($[M], [L], [T], [\Theta], [I]$). Dimensional mismatch is proof of a mathematical bug.
 
 \begin{principlebox}{Dimensional Discipline}
-\begin{enumerate}
-    \item Verify dimensional homogeneity: $[\mathrm{LHS}] = [\mathrm{RHS}]$ for every physical relation.
-    \item Nondimensionalize equations using characteristic scales prior to numerical integration:
-    \begin{equation}
-        x^* = \frac{x}{L_0}, \quad t^* = \frac{t U_0}{L_0}, \quad p^* = \frac{p}{\rho_0 U_0^2}
-    \end{equation}
-    \item Verify that arguments to transcendental functions ($\exp, \ln, \sin, \cos$) are strictly dimensionless ($[f(\arg)] = 1 \implies [\arg] = 1$).
-\end{enumerate}
+For every equation $[\mathrm{LHS}] = [\mathrm{RHS}]$. Arguments of $\exp$, $\ln$, $\sin$ must be dimensionless. Non-dimensionalize coupled systems with characteristic scales.
 \end{principlebox}
 
-\section{Principle 3: Preservation of Physical Conservation Laws}
-\textbf{Principle File}: \texttt{skills/science-mode/principles/preserve-conservation-laws.md}
+\begin{principlebox}{Numerical Stability First}
+For a linear system $A\mathbf{x}=\mathbf{b}$ the relative error obeys
+\[ \frac{\|\delta \mathbf{x}\|}{\|\mathbf{x}\|} \;\lesssim\; \kappa(A)\left(\frac{\|\delta A\|}{\|A\|}+\frac{\|\delta \mathbf{b}\|}{\|\mathbf{b}\|}\right). \]
+Use \texttt{solve(A, b)} or a factorization rather than forming $A^{-1}$. Replace $\ln(1+x)$ by \texttt{log1p}, $e^x-1$ by \texttt{expm1}, $1-\cos x$ by $2\sin^2(x/2)$.
+\end{principlebox}
 
-According to Noether's theorem, every continuous physical symmetry corresponds to a conserved invariant:
-\begin{itemize}
-    \item Time translation invariance $\implies$ Energy conservation ($\frac{dE}{dt} = 0$).
-    \item Spatial translation invariance $\implies$ Linear momentum conservation ($\frac{d\mathbf{p}}{dt} = \mathbf{0}$).
-    \item Spatial rotational invariance $\implies$ Angular momentum conservation ($\frac{d\mathbf{L}}{dt} = \mathbf{0}$).
-    \item Phase invariance (gauge symmetry) $\implies$ Charge / probability norm conservation ($\int |\psi|^2 dx = 1$).
-\end{itemize}
-
-Standard dissipative discrete schemes (such as implicit backward Euler) artificially dissipate energy, while explicit schemes often artificially inject energy. \texttt{scienceStack} mandates \textbf{invariant tracking}:
-\begin{equation}
-    \delta(t) = \frac{|I(t) - I(0)|}{|I(0)|} \le \tau_{\mathrm{drift}}
-\end{equation}
-
-\section{Principle 4: Numerical Stability First}
-\textbf{Principle File}: \texttt{skills/science-mode/principles/numerical-stability-first.md}
-
-Numerical algorithms must remain stable in floating-point arithmetic ($\text{IEEE-754}$). Premature vectorization must never compromise numerical conditioning.
-
-\begin{warningbox}{Catastrophic Cancellation}
-Subtracting two nearly equal floating-point numbers $a \approx b$ causes severe cancellation, wiping out significant bits:
-\begin{equation}
-    \text{Error}_{\text{rel}} \approx \frac{\epsilon_{\text{mach}}}{|a - b|}
-\end{equation}
-Use conditioned mathematical identities or special functions:
-\begin{itemize}
-    \item Replace $1 - \cos x$ with $2 \sin^2(x/2)$ for $|x| \ll 1$.
-    \item Replace $\ln(1 + x)$ with \texttt{math.log1p(x)}.
-    \item Replace $e^x - 1$ with \texttt{math.expm1(x)}.
-    \item Replace $\ln\sum e^{x_i}$ with \texttt{scipy.special.logsumexp(x)}.
-\end{itemize}
-\end{warningbox}
-
-\begin{warningbox}{Strict Matrix Inversion Prohibition}
-Never compute $\mathbf{x} = \mathbf{A}^{-1}\mathbf{b}$ via \texttt{numpy.linalg.inv(A) @ b}. Matrix inversion introduces an operation count of $2n^3$ flops and squares the numerical condition number:
-\begin{equation}
-    \kappa(\mathbf{A}) = \|\mathbf{A}\| \|\mathbf{A}^{-1}\|
-\end{equation}
-Always compute linear solves via direct factorization or Krylov iterative methods:
-\begin{lstlisting}[language=Python]
-# FORBIDDEN:
-x = np.linalg.inv(A) @ b
-
-# MANDATED:
-x = np.linalg.solve(A, b)
-# Or for symmetric positive definite matrices:
-# L = scipy.linalg.cho_factor(A); x = scipy.linalg.cho_solve(L, b)
-\end{lstlisting}
-\end{warningbox}
-
-\section{Principle 5: Verification Against Analytical Limits and Golden Benchmarks}
-\textbf{Principle File}: \texttt{skills/science-mode/principles/verify-analytical-limits.md}
-
-Unit tests asserting that code ``runs without throwing an exception'' are insufficient for scientific software. Verification requires rigorous mathematical convergence:
-\begin{enumerate}
-    \item \textbf{Analytical Closed-Form Solutions}: Validate against known exact solutions under simplified boundary conditions.
-    \item \textbf{Method of Manufactured Solutions (MMS)}: For nonlinear or coupled PDEs without closed-form solutions, manufacture an analytical solution $u_{\text{exact}}(\mathbf{x}, t)$, substitute into the PDE to derive an analytical source term $f_{\text{mms}}$, and verify that the discrete solver converges to $u_{\text{exact}}$ at the theoretical asymptotic rate $O(h^p)$:
-    \begin{equation}
-        p = \frac{\ln(E_{h_1} / E_{h_2})}{\ln(h_1 / h_2)}
-    \end{equation}
-    \item \textbf{Golden Datasets}: Validate against community-accepted experimental or high-resolution numerical datasets stored in \texttt{tests/golden/}.
-\end{enumerate}
-
-\section{Principle 6: Physics-Modular Architecture \& Decoupled Operators}
-\textbf{Principle File}: \texttt{skills/science-mode/principles/physics-modular-architecture.md}
-
-Scientific simulation software frequently degrades into monolithic codebases where physics governing laws (e.g., gravitational accelerations, nuclear reaction networks, equations of state, radiative transfer opacity, stress-strain tensors) are tightly entangled with numerical time steppers (Runge-Kutta, Leapfrog), spatial mesh topologies, and file I/O operations.
-
-When physical models are monolithic, external research codes, alternate integrators, and higher-order solvers cannot invoke the physics routines independently. \texttt{scienceStack} mandates a strict \textbf{Physics-Modular Architecture}:
+\begin{principlebox}{Conservation Laws}
+Hamiltonian systems $H(\mathbf{q},\mathbf{p})$ use symplectic integrators (kick-drift-kick leapfrog, Yoshida splitting), which conserve a nearby shadow Hamiltonian $\widetilde H = H + O(\tau^2)$ and show no secular energy drift. Track $E(t)$, $\mathbf{P}(t)$, $\mathbf{L}(t)$ in tests with an explicit tolerance. Explicit Runge--Kutta is not used for long-term orbit integration.
+\end{principlebox}
 
 \begin{principlebox}{Physics-Modular Architecture}
-\begin{enumerate}
-    \item \textbf{Decouple Physics from Numerics}:
-    Isolate pure physical laws into dedicated, stateless modules (\texttt{physics/}). Physics operators must accept pure state vectors $\mathbf{y}$ and physical parameters $\mathbf{p}$, computing state derivatives $\frac{d\mathbf{y}}{dt}$, accelerations $\mathbf{a}_i$, or fluxes $\mathbf{F}(\mathbf{u})$ without time-stepping logic or grid allocations:
-    \begin{equation}
-        \mathbf{a}_i = \mathcal{F}_{\text{phys}}(\{\mathbf{q}_j\}, \{m_j\}, G, \epsilon)
-    \end{equation}
-    \item \textbf{Generalized Numerical Steppers}:
-    Numerical integrators (e.g., symplectic Leapfrog, Radau, BDF) must be physics-agnostic, accepting an arbitrary callable physics operator:
-    \begin{equation}
-        \mathbf{y}^{n+1} = \mathcal{I}_{\text{stepper}}(\mathbf{y}^n, \Delta t, \mathcal{F}_{\text{phys}})
-    \end{equation}
-    \item \textbf{Driver-Agnostic Composability}:
-    Ensure external solvers or other analysis codes can directly import and execute the physics module without instantiating simulation drivers.
-\end{enumerate}
+Forces, equations of state, and rate equations are pure, stateless functions in a \texttt{physics/} module that other solvers can import without a time stepper, mesh, or I/O.
 \end{principlebox}
 
-\subsection{Architectural Comparison: Monolithic vs. Modular}
+\begin{principlebox}{Analytical Limits and MMS}
+For a differential operator $\mathcal{L}$, choose a smooth $u_{\mathrm{mms}}$, compute $f=\mathcal{L}[u_{\mathrm{mms}}]$ symbolically, solve $\mathcal{L}[u]=f$ numerically and check that the error norm falls with the expected order $p$ under grid refinement:
+\[ p_{\mathrm{obs}} = \frac{\ln(e_h/e_{h/2})}{\ln 2}. \]
+\end{principlebox}
 
-\begin{lstlisting}[language=Python, caption={Non-compliant monolithic coupling}]
-# BAD: Gravitational force calculation is inextricably tangled inside 
-# the simulation loop and file output logic. Other codes cannot reuse this physics.
-class MonolithicSimulation:
-    def step_and_save(self, dt, filepath):
-        for i in range(self.n):
-            for j in range(self.n):
-                # Physics formula embedded inside stepper...
-                ...
-        self.positions += self.velocities * dt
-        self.save_to_disk(filepath)
-\end{lstlisting}
-
-\begin{lstlisting}[language=Python, caption={Compliant physics-modular decomposition}]
-# GOOD:
-# 1. Pure physics module: callable by ANY solver or analysis tool
-# physics/gravity.py
-def gravitational_accelerations(
-    positions: List[List[float]], 
-    masses: List[float], 
-    G: float = 1.0, 
-    softening: float = 0.0
-) -> List[List[float]]:
-    r"""Stateless physics operator: a_i = -G \sum_j m_j (q_i - q_j) / |q_i - q_j|^3."""
-    ...
-    return accelerations
-
-# 2. Generalized numerical stepper (physics-agnostic)
-# numerics/symplectic.py
-def leapfrog_step(q, v, dt, accel_operator):
-    r"""Symplectic Drift-Kick-Drift step accepting any acceleration operator."""
-    q_half = q + 0.5 * dt * v
-    v_next = v + dt * accel_operator(q_half)
-    q_next = q_half + 0.5 * dt * v_next
-    return q_next, v_next
-\end{lstlisting}
-
-% -------------------------------------------------------------
-% Chapter 5: Primary Scientific Skills and Playbooks
-% -------------------------------------------------------------
-\chapter{Scientific Skills and Playbooks}
-
-\section{The Master Controller: /science-mode}
-
-\texttt{/science-mode} is the entry point for all non-trivial scientific tasks. When invoked with a user objective, it:
-\begin{enumerate}
-    \item Analyzes the prompt and classifies the intent into a specialized playbook.
-    \item Initializes an in-context todo list or Brain Artifact.
-    \item Evaluates prerequisites (models, verification harnesses, git branch state).
-    \item Spawns subagents (\texttt{science-master} and \texttt{theory-reviewer}) as each step requires.
-    \item Collects empirical evidence before declaring completion.
-\end{enumerate}
-
-\section{Dedicated Scientific Skills}
-
-\subsection{/scientific-equation-verifier}
-\textbf{Directory}: \texttt{skills/scientific-equation-verifier/SKILL.md}
-
-Performs an exhaustive audit of an existing codebase or proposed diff against mathematical and physical principles. 
-
-\textbf{Usage}:
-\begin{lstlisting}
-/scientific-equation-verifier verify the stress-strain constitutive updates in elasticity.py
-\end{lstlisting}
-
-\subsection{/numerical-stability-audit}
-\textbf{Directory}: \texttt{skills/numerical-stability-audit/SKILL.md}
-
-Audits numerical algorithms for floating-point vulnerabilities:
-\begin{itemize}
-    \item Matrix condition number estimates ($\kappa_2(\mathbf{A})$).
-    \item Detects explicit matrix inversions (\texttt{np.linalg.inv}).
-    \item Identifies unguarded divisions by zero in geometric and kinetic factors.
-    \item Analyzes stiff ordinary differential equations (ODEs) to ensure appropriate implicit integrators (e.g., Radau IIA, BDF) are selected over explicit Runge-Kutta.
-\end{itemize}
-
-\subsection{/golden-dataset-benchmark}
-\textbf{Directory}: \texttt{skills/golden-dataset-benchmark/SKILL.md}
-
-Manages the acquisition, generation, and verification of canonical test problems across major scientific disciplines.
-
-\begin{table}[h!]
+\chapter{Playbooks}
+\texttt{/science-mode} selects and executes the specific playbook matching the task.
+\begin{table}[h]
 \centering
 \small
-\begin{tabularx}{\textwidth}{p{3.2cm} p{4.2cm} X}
+\begin{tabular}{lp{10cm}}
 \toprule
-\textbf{Domain} & \textbf{Canonical Benchmark} & \textbf{Validation Metric} \\
+\textbf{Playbook} & \textbf{Purpose} \\
 \midrule
-Astronomy / Orbits & 2-Body Kepler Problem & Vis-viva energy error $< 10^{-14}$; specific angular momentum error $< 10^{-14}$ \\
-Astronomy / N-body & Symplectic Planetary Orbit & Zero secular energy drift over $10^4$ steps ($|\Delta E/E_0| < 10^{-10}$); angular momentum conserved \\
-Astronomy / Stars & Lane-Emden Polytropes & Surface radius $\xi_1$ and mass factor $\omega_n$ matching exact values for $n=0, 1$ to $< 10^{-10}$ and tabulated benchmarks ($n=1.5, 3.0$) to $< 10^{-5}$ \\
-Astronomy / Frames & IAU Galactic to ICRS & Orthonormality error $\|\mathbf{R}^T \mathbf{R} - \mathbf{I}\| < 10^{-14}$, $\det\mathbf{R} = 1.0$ \\
-CFD & 1D Sod Shock Tube & $L_1$ and $L_2$ norm vs. exact Riemann solver; shock position $\Delta x < 0.5 \Delta x_{\text{cell}}$ \\
-CFD / Turbulence & 2D Taylor-Green Vortex & Kinetic energy decay rate $dK/dt = -2\nu \Omega$ \\
-Solid Mechanics (FEM) & Cook's Membrane & Vertical tip deflection $u_y$ at $(48, 60)$ under mesh refinement \\
-Chemical Kinetics & Robertson Reaction System & Mass conservation $|y_1 + y_2 + y_3 - 1.0| < 10^{-12}$; stiffness ratio $\approx 10^9$ \\
-Molecular Dynamics & Lennard-Jones Cluster & Microcanonical energy drift $|\Delta E(t)/E_0| < 10^{-5}$ over $10^5$ steps \\
-Quantum Mechanics & 1D Harmonic Oscillator & Energy eigenvalue error $|E_n - \hbar\omega(n + 1/2)| < 10^{-8}$ \\
+\texttt{equation-implementation} & Turn a published equation into verified code with LaTeX docstrings, dimension checks, and limit tests. \\
+\texttt{numerical-verification} & Truncation-error order, grid-refinement convergence, conservation stability. \\
+\texttt{perf-issue} & Profile and remove a bottleneck while asserting $L_2$ parity with the previous output. \\
+\texttt{hillclimb} & Iterate against a quantitative target: one change, one measurement, keep or revert, with a decision log. \\
+\texttt{bug-fix} & Reproduce on a minimal analytic case, find the root cause by evidence, failing test first. \\
+\texttt{refactoring} & Pin behavior with a characterization test, then restructure into stateless physics modules. \\
 \bottomrule
-\end{tabularx}
-\caption{Canonical benchmark problems supported by /golden-dataset-benchmark.}
-\label{tab:benchmarks}
+\end{tabular}
 \end{table}
 
-\section{Specialized Scientific Playbooks}
+\chapter{Safety Hooks and Tools}
 
-Inside \texttt{skills/science-mode/playbooks/}, \texttt{scienceStack} ships specialized playbooks that structure the lifecycle of scientific implementations:
-
-\subsection{Playbook: equation-implementation}
-\textbf{Path}: \texttt{skills/science-mode/playbooks/equation-implementation.md}
-\begin{enumerate}
-    \item \textbf{Theory Extraction}: Isolate the governing continuous differential/integral equations, boundary conditions, and sign conventions from literature.
-    \item \textbf{Coordinate \& Tensor Settlement}: Settle metric components, array layouts, and dimensionless scaling factors.
-    \item \textbf{Analytical Limit Definition}: Formulate exact asymptotic solutions or MMS test fixtures.
-    \item \textbf{Numerical Implementation}: Spawn \texttt{science-master} to write clean, conditioned code without explicit inversions.
-    \item \textbf{Theoretical Audit}: Spawn \texttt{theory-reviewer} to verify signs, normalizations, and LaTeX provenance.
-    \item \textbf{Convergence Testing}: Prove grid convergence $O(h^p)$ against the analytical limit.
+\section{PreToolUse Safety Gate}
+\texttt{scripts/hook\_pre\_tool\_guard.py} intercepts tool writes (\texttt{write\_file}, \texttt{edit\_file}, and terminal write invocations) and blocks proposed code that contains three critical hazards:
+\begin{enumerate}[itemsep=2pt]
+    \item \textbf{Explicit matrix inversion}: \texttt{numpy.linalg.inv}, \texttt{scipy.linalg.inv}, \texttt{torch.linalg.inv}, \texttt{torch.inverse}, and JAX/CuPy/SciPy-sparse equivalents. Names are resolved through AST import aliases.
+    \item \textbf{Truncated $\pi$}: literal values \texttt{3.14159} and \texttt{3.1416}.
+    \item \textbf{Mutable NumPy default argument}: \texttt{def f(x=np.zeros(3))}.
 \end{enumerate}
+Comments, docstrings, and strings are parsed away by the AST and never trigger the gate.
 
-\subsection{Playbook: numerical-verification}
-\textbf{Path}: \texttt{skills/science-mode/playbooks/numerical-verification.md}
-\begin{enumerate}
-    \item \textbf{Refinement Hierarchy}: Construct grids with cell sizes $h, h/2, h/4, h/8$.
-    \item \textbf{Discrete Error Computation}: Measure $L_2$ error norm $E(h) = \|u_h - u_{\text{exact}}\|_{L_2}$.
-    \item \textbf{Empirical Order Calculation}: Compute convergence slope $p = \frac{\ln(E_{2h}/E_h)}{\ln 2}$.
-    \item \textbf{Conservation Monitoring}: Record invariant drift $\Delta I(t)$ across simulation duration.
-    \item \textbf{Artifact Generation}: Output convergence tables and error plots to Brain Artifacts.
-\end{enumerate}
+\section{Building Both Sides of a Comparison}
+A manifest \texttt{compare} check can produce its reference and/or its test output by running programs instead of trusting committed files: \texttt{ref\_from} and \texttt{test\_from} give argument lists (never a raw shell), the output (\texttt{stdout} or file path), and \texttt{pinned}, the SHA-256 of every source and input file. A changed pinned file fails the check before anything runs. For \texttt{ref\_from}, the committed reference must reproduce the rebuilt numbers within \texttt{reproduce\_rtol} and \texttt{reproduce\_atol}.
 
-% -------------------------------------------------------------
-% Chapter 6: Astronomy and Celestial Mechanics Solvers
-% -------------------------------------------------------------
-\chapter{Astronomy and Celestial Mechanics Solvers}
-
-\section{Overview of the Astronomy Suite}
-Astronomy, astrophysics, and celestial mechanics impose stringent mathematical demands on computational algorithms. Planetary and stellar systems are Hamiltonian and non-dissipative; standard explicit integrators introduce artificial secular energy drift that destroys orbital stability over astronomical integration intervals. Coordinate transformations require direction cosine matrices in $\mathrm{SO}(3)$ that must preserve unit norm and orthogonality to machine precision. Stellar structure equations exhibit coordinate singularities at the stellar core ($\xi = 0$) that require analytical series expansions before numerical stepping.
-
-\texttt{scienceStack} provides four bundled, zero-network reference solvers in \texttt{benchmarks/astronomy/}:
-\begin{enumerate}
-    \item \textbf{\texttt{kepler\_solver.py}}: Universal Kepler equation solver for elliptic and hyperbolic motion with cubic Halley iteration and Cartesian orbit propagation.
-    \item \textbf{\texttt{symplectic\_nbody.py}}: Symplectic Leapfrog and Yoshida integrators for gravitationally interacting $N$-body systems with exact energy and angular momentum tracking.
-    \item \textbf{\texttt{lane\_emden\_solver.py}}: Stellar structure polytropic solver with near-center series expansion removing the $2/\xi$ coordinate singularity.
-    \item \textbf{\texttt{coordinate\_transforms.py}}: Direction cosine transformations between Equatorial (J2000 ICRS), Ecliptic, and Galactic coordinate systems.
-\end{enumerate}
-
-\section{Kepler Orbit Propagation and Vis-Viva Invariants}
-\subsection{Mathematical Formulation}
-For two-body gravitational motion under central potential $V(r) = -\mu/r$, Kepler's equation for elliptic orbits ($0 \le e < 1$) relates mean anomaly $M(t) = n(t - t_0)$ to eccentric anomaly $E$:
-\begin{equation}
-    M = E - e \sin E
-\end{equation}
-The true anomaly $\nu$ is obtained without quadrant ambiguity or cancellation via:
-\begin{equation}
-    \tan\frac{\nu}{2} = \sqrt{\frac{1+e}{1-e}} \tan\frac{E}{2}
-\end{equation}
-The orbital radius and perifocal state vector are:
-\begin{equation}
-    r = a(1 - e \cos E), \quad \mathbf{r}_{\text{orb}} = \begin{bmatrix} r \cos\nu \\ r \sin\nu \\ 0 \end{bmatrix}, \quad \mathbf{v}_{\text{orb}} = \frac{\mu}{h} \begin{bmatrix} -\sin\nu \\ e + \cos\nu \\ 0 \end{bmatrix}
-\end{equation}
-where $h = \sqrt{\mu a (1 - e^2)}$ is the specific angular momentum.
-
-\subsection{Cubic Halley Solver}
-For high eccentricities ($e \to 1$), standard Newton-Raphson oscillates or converges slowly. \texttt{scienceStack} implements third-order Halley acceleration:
-\begin{equation}
-    \Delta_1 = -\frac{f(E)}{f'(E)}, \quad \Delta_{\text{Halley}} = -\frac{f(E)}{f'(E) + \frac{1}{2} \Delta_1 f''(E)}
-\end{equation}
-where $f(E) = E - e \sin E - M$, $f'(E) = 1 - e \cos E$, and $f''(E) = e \sin E$. This method achieves machine precision ($|E_{k+1} - E_k| < 10^{-14}$) in 3 iterations.
-
-\subsection{Invariant Verification}
-Every propagated state $(\mathbf{r}, \mathbf{v})$ must satisfy the vis-viva equation:
-\begin{equation}
-    \mathcal{E} = \frac{v^2}{2} - \frac{\mu}{r} = -\frac{\mu}{2a}
-\end{equation}
-and specific angular momentum conservation $\mathbf{h} = \mathbf{r} \times \mathbf{v}$. The reference solver asserts that both invariants deviate by less than $10^{-14}$ in double precision.
-
-\section{Symplectic Gravitational N-Body Dynamics}
-\subsection{The Hamiltonian and Symplectic Structure}
-An $N$-body gravitational system is governed by the Hamiltonian:
-\begin{equation}
-    H(\mathbf{q}, \mathbf{p}) = \sum_{i=1}^N \frac{\mathbf{p}_i^2}{2 m_i} - \sum_{1 \le i < j \le N} \frac{G m_i m_j}{\|\mathbf{q}_i - \mathbf{q}_j\|}
-\end{equation}
-Standard integrators (such as Runge-Kutta 4th order) are non-symplectic: they fail to preserve the differential 2-form $\omega = \sum_i d\mathbf{q}_i \wedge d\mathbf{p}_i$. Over thousands of orbital periods, non-symplectic integrators introduce artificial dissipation or excitation, causing orbits to decay or blow up.
-
-\subsection{Drift-Kick-Drift Leapfrog}
-\texttt{scienceStack} implements the symplectic 2nd-order Drift-Kick-Drift (DKD) scheme:
-\begin{align}
-    \mathbf{q}_i^{n+1/2} &= \mathbf{q}_i^n + \frac{\Delta t}{2} \mathbf{v}_i^n \\
-    \mathbf{v}_i^{n+1} &= \mathbf{v}_i^n + \Delta t \, \mathbf{a}_i(\mathbf{q}^{n+1/2}) \\
-    \mathbf{q}_i^{n+1} &= \mathbf{q}_i^{n+1/2} + \frac{\Delta t}{2} \mathbf{v}_i^{n+1}
-\end{align}
-where gravitational accelerations $\mathbf{a}_i = -G \sum_{j \neq i} m_j \frac{\mathbf{q}_i - \mathbf{q}_j}{\|\mathbf{q}_i - \mathbf{q}_j\|^3}$ satisfy Newton's third law ($\mathbf{F}_{ij} = -\mathbf{F}_{ji}$).
-Because DKD is symplectic, the numerical trajectory exactly traces a nearby ``shadow Hamiltonian'' $\tilde{H} = H + O(\Delta t^2)$, ensuring that total energy $E(t)$ oscillates boundedly with zero secular growth over $10^5$ steps.
-
-\section{Stellar Structure: Lane-Emden Polytropes}
-\subsection{Governing Equation and Singularity Removal}
-Hydrostatic equilibrium and a polytropic equation of state ($P = K \rho^{1 + 1/n}$) yield the dimensionless Lane-Emden equation:
-\begin{equation}
-    \frac{1}{\xi^2} \frac{d}{d\xi}\left( \xi^2 \frac{d\theta}{d\xi} \right) + \theta^n = 0 \iff \frac{d^2\theta}{d\xi^2} + \frac{2}{\xi}\frac{d\theta}{d\xi} + \theta^n = 0
-\end{equation}
-with central boundary conditions $\theta(0) = 1$ and $\theta'(0) = 0$.
-At $\xi = 0$, the geometry term $(2/\xi)\theta'$ creates a coordinate singularity. \texttt{scienceStack} removes this singularity by starting integration at $\xi_0 = 10^{-4}$ using the analytic series expansion:
-\begin{equation}
-    \theta(\xi) \approx 1 - \frac{\xi^2}{6} + \frac{n \xi^4}{120} - \frac{n(8n - 5)\xi^6}{15120} + O(\xi^8)
-\end{equation}
-\subsection{Analytical and Tabulated Benchmarks}
-The numerical solver integrates radially outward until $\theta(\xi_1) = 0$, determining the stellar radius $\xi_1$ and mass factor $\omega_n = -\xi_1^2 \theta'(\xi_1)$:
-\begin{itemize}
-    \item $n = 0$ (Constant density): $\xi_1 = \sqrt{6} \approx 2.449490$, $\omega_0 = 2\sqrt{6} \approx 4.898979$.
-    \item $n = 1$ (Linear polytrope): $\xi_1 = \pi \approx 3.141593$, $\omega_1 = \pi \approx 3.141593$.
-    \item $n = 1.5$ (Convective stars / Non-relativistic white dwarfs): $\xi_1 \approx 3.65375$, $\omega_{1.5} \approx 2.71406$.
-    \item $n = 3.0$ (Radiation-dominated stars / Relativistic Chandrasekhar limit): $\xi_1 \approx 6.89685$, $\omega_3 \approx 2.01824$.
+\section{Verification Hooks}
+In a git project that uses scienceStack verification (contains \texttt{reference-checks.json}, \texttt{test-ratchet-approvals.json}, or \texttt{.verification/}):
+\begin{itemize}[itemsep=2pt]
+    \item \texttt{scripts/hook\_test\_guard.py} (PreToolUse): Compares proposed edits against baseline ASTs and denies/asks if a test is weakened (looser tolerance, removed test/assertion, new skip/xfail, fewer parametrizations).
+    \item \texttt{scripts/hook\_record\_edit.py} (PostToolUse): Records files modified during the active session.
+    \item \texttt{scripts/hook\_stop\_gate.py} (StopGate): Blocks completion once if edited solvers or compared outputs lack fresh passing checks, recorded tests are stale, or edited tests lack fresh ratchet runs.
 \end{itemize}
+Hooks fail closed: internal crashes or unexpected formats deny modifications until addressed. Set \texttt{SCIENCESTACK\_HOOKS=off} in the environment to temporarily bypass verification hooks.
 
-% -------------------------------------------------------------
-% Chapter 7: Automated Tooling and Lifecycle Hooks
-% -------------------------------------------------------------
-\chapter{Automated Tooling and Antigravity Lifecycle Hooks}
+\begin{warningbox}{Limits}
+The gate cannot see an inversion built dynamically (\texttt{getattr}), \texttt{np.matrix} objects used through \texttt{.I}, or code written by unhooked external processes. It is a safety net, not an absolute formal proof.
+\end{warningbox}
 
-\section{The AST Numerical Stability Auditor}
-\textbf{Script}: \texttt{scripts/audit\_numerical\_ast.py}
+\section{AST Auditor}
+\texttt{python3 scripts/audit\_numerical\_ast.py <file|dir> [--strict] [--json]} reports:
+\texttt{BAN\_MATRIX\_INV} (error); \texttt{CANCELLATION\_LOG1P}, \texttt{CANCELLATION\_EXPM1}, \texttt{CANCELLATION\_ONE\_MINUS\_COS}, \texttt{PRECISION\_FLOAT32}, \texttt{TRUNCATED\_PI}, \texttt{MUTABLE\_ARRAY\_DEFAULT} (warnings); \texttt{MISSING\_LATEX\_PROVENANCE} (info).
 
-To ensure deterministic compliance before code is committed or tested, \texttt{scienceStack} includes an Abstract Syntax Tree (AST) static analysis tool. The auditor parses Python source code and identifies:
-\begin{enumerate}
-    \item \textbf{Explicit Matrix Inversions} (\texttt{BAN\_MATRIX\_INV}): Flags occurrences of \texttt{np.linalg.inv} or \texttt{scipy.linalg.inv}. Suggests direct factorized solvers (\texttt{solve(A, b)}).
-    \item \textbf{Catastrophic Cancellation Hazards} (\texttt{CANCELLATION\_LOG1P}, \texttt{CANCELLATION\_EXPM1}, \texttt{CANCELLATION\_ONE\_MINUS\_COS}): Detects expressions like $\log(1+x)$ and $e^x - 1$ where $|x| \ll 1$ causes loss of significant bits.
-    \item \textbf{Single-Precision Traps} (\texttt{PRECISION\_FLOAT32}): Detects single-precision casting in time-steppers or simulation loops where double precision is required.
-    \item \textbf{Missing LaTeX Docstrings} (\texttt{MISSING\_LATEX\_PROVENANCE}): Flags scientific kernels lacking continuous equations in LaTeX docstrings.
-\end{enumerate}
-
-\section{Symbolic Method of Manufactured Solutions (MMS) Generator}
-\textbf{Script}: \texttt{scripts/mms\_generator.py}
-
-Verifying PDE solvers against analytical limits requires exact forcing terms. The MMS generator uses \texttt{SymPy} to symbolically substitute any manufactured exact solution $u_{\text{exact}}(\mathbf{x}, t)$ into a differential operator $\mathcal{L}[u]$:
-\begin{lstlisting}
-python3 scripts/mms_generator.py \
-  --exact "sin(pi*x) * exp(-t)" \
-  --operator "diff(u, t) - alpha * diff(u, x, 2)" \
-  --params "alpha=0.1" \
-  --output test_mms_heat.py
+\section{MMS and Jacobian Generators}
+\begin{lstlisting}[language=bash]
+python3 scripts/mms_generator.py --exact "sin(pi*x)*exp(-t)" \
+    --operator "diff(u, t) - alpha*diff(u, x, 2)" --params "alpha=0.1" --output fixture.py
+python3 scripts/derive_jacobian.py --vars "x,y" --eqs "x**2 + y, sin(x)*y"
 \end{lstlisting}
-The tool outputs the simplified analytical forcing term $f(x, t) = \mathcal{L}[u_{\text{exact}}]$, formats the continuous equation in LaTeX, and writes a complete, executable \texttt{pytest} test harness verifying the asymptotic convergence order $O(h^p)$.
+For $u=e^{-t}\sin\pi x$ and $\mathcal L[u]=u_t-\alpha u_{xx}$ the generator derives the forcing
+\[ f(x,t) = (\alpha\pi^2-1)\,e^{-t}\sin\pi x, \]
+and writes a fixture whose convergence test is ready for solver attachment. The Jacobian generator emits \texttt{compute\_jacobian(\_state)} and analytic symbolic entries.
 
-\section{Symbolic Jacobian Synthesizer}
-\textbf{Script}: \texttt{scripts/derive\_jacobian.py}
-
-In stiff kinetic systems or implicit finite element formulations, hand-deriving Jacobians is a major source of sign errors and transposed indices. The Jacobian synthesizer computes analytical partial derivatives $\mathbf{J}_{ij} = \partial f_i / \partial y_j$, simplifies expressions symbolically, and emits vectorized, conditioned Python/NumPy code directly.
-
-\section{Native Antigravity Lifecycle Hook: PreToolUse Safety Gate}
-\textbf{File}: \texttt{hooks.json} \& \texttt{scripts/hook\_pre\_tool\_guard.py}
-
-Antigravity executes lifecycle hooks at defined stages of agent execution. \texttt{scienceStack} registers a native \texttt{PreToolUse} hook for \texttt{write\_file} and \texttt{edit\_file} tools at zero context token cost.
-When an agent attempts to write or edit a scientific code file (\texttt{.py}, \texttt{.cpp}, \texttt{.c}, \texttt{.cu}, \texttt{.f90}, \texttt{.f}, \texttt{.jl}, \texttt{.rs}):
-\begin{enumerate}
-    \item The hook parses the incoming JSON tool payload from \texttt{stdin}.
-    \item It inspects the proposed code (ignoring comments) for three high-severity hazards:
-    \begin{itemize}
-        \item \textbf{Explicit Matrix Inversion}: Blocks \texttt{np.linalg.inv} and \texttt{scipy.linalg.inv} in favor of \texttt{solve(A, b)}.
-        \item \textbf{Truncated $\pi$ Literals}: Blocks low-precision \texttt{3.14159} and \texttt{3.1416} literals that degrade accuracy to $10^{-6}$ and break $L_2 < 10^{-12}$ parity, enforcing \texttt{np.pi}, \texttt{math.pi}, or \texttt{M\_PI}.
-        \item \textbf{Mutable NumPy Array Default Arguments}: Blocks Python signatures such as \texttt{def f(x=np.zeros(3)):} that cause cross-call state corruption.
-    \end{itemize}
-    \item If a violation is detected, the hook halts the tool step immediately with an actionable \texttt{"decision": "deny"} message; otherwise it returns \texttt{"decision": "allow"}.
-\end{enumerate}
-
-% -------------------------------------------------------------
-% Chapter 8: Practical Tutorials and Workflows
-% -------------------------------------------------------------
-\chapter{End-to-End Practical Tutorials}
-
-\section{Tutorial 1: Implementing a Stiff Kinetic System (Robertson)}
-
-\subsection{Problem Statement}
-The Robertson chemical reaction model represents an autocatalytic reaction with extreme timescale separation (stiffness ratio $\approx 10^9$). The governing system is:
-\begin{align}
-    \frac{dy_1}{dt} &= -0.04 y_1 + 10^4 y_2 y_3 \\
-    \frac{dy_2}{dt} &= 0.04 y_1 - 10^4 y_2 y_3 - 3 \cdot 10^7 y_2^2 \\
-    \frac{dy_3}{dt} &= 3 \cdot 10^7 y_2^2
-\end{align}
-with initial conditions $\mathbf{y}(0) = [1, 0, 0]^T$ over $t \in [0, 10^5]$. Total mass is strictly conserved:
-\begin{equation}
-    y_1(t) + y_2(t) + y_3(t) \equiv 1.0 \quad \forall t \ge 0
-\end{equation}
-
-\subsection{Executing with /science-mode}
-To instruct Antigravity to implement and verify this solver, type:
-\begin{lstlisting}
-/science-mode implement the Robertson stiff chemical kinetics benchmark in kinetics.py.
-Use an implicit integrator with Jacobian evaluation.
-Verify that total mass y1 + y2 + y3 is conserved to within 1e-12.
-Validate against reference data in tests/golden/robertson.
-\end{lstlisting}
-
-\subsection{What Happens Internally}
-\begin{enumerate}
-    \item \texttt{science-mode} classifies the prompt into the \texttt{equation-implementation} playbook.
-    \item It verifies that \texttt{tests/golden/robertson/} exists or downloads reference trajectories.
-    \item It invokes \texttt{science-master} in an isolated branch. \texttt{science-master} implements the RHS and analytic Jacobian $\mathbf{J}(t, \mathbf{y})$:
-    \begin{equation}
-        \mathbf{J} = \begin{bmatrix}
-        -0.04 & 10^4 y_3 & 10^4 y_2 \\
-        0.04 & -10^4 y_3 - 6 \cdot 10^7 y_2 & -10^4 y_2 \\
-        0 & 6 \cdot 10^7 y_2 & 0
-        \end{bmatrix}
-    \end{equation}
-    \item \texttt{theory-reviewer} audits the Jacobian line-by-line against the partial derivatives $\partial \dot{y}_i / \partial y_j$.
-    \item \texttt{numerical-stability-audit} verifies that Radau IIA / BDF integration is selected and explicit RK45 is rejected.
-    \item Test fixtures verify that the mass conservation invariant drift remains below $10^{-12}$.
-\end{enumerate}
-
-\section{Tutorial 2: Conducting an Overnight Autonomous Run}
-
-When conducting an extensive simulation study, refactoring an entire solver module, or tuning convergence across a multi-mesh grid, you can initiate an autonomous overnight run.
-
-\subsection{The Overnight Contract Prompt}
-\begin{lstlisting}
-/science-mode i'm stepping away. refactor the finite volume flux splitters in cfd/fluxes.py
-to use Roe and HLLC approximate Riemann solvers.
-Do not stop until:
-1. All golden tests in tests/golden/sod_shock/ pass with L2 relative error < 0.02.
-2. Invariant conservation of total mass and total energy is verified over 500 time steps.
-3. theory-reviewer signs off on sign conventions and normalizations.
-Keep a decision log in brain/artifacts so I can audit everything in the morning.
-\end{lstlisting}
-
-\subsection{Safeguards During Autonomous Execution}
-\begin{itemize}
-    \item \textbf{Non-blocking Reactive Execution}: Antigravity does not freeze or block your shell; background tasks trigger reactive resume events.
-    \item \textbf{Decision Trail}: The \texttt{show-me-your-work} mechanism logs every design decision, alternative rejected, and benchmark metric to a structured Antigravity Brain Artifact.
-    \item \textbf{Self-Correction}: If a test fails with numerical instability, the agent triggers the stability audit skill (\texttt{/numerical-stability-audit}), pinpoints the flux limiter or time-step CFL violation, adjusts the formulation, and re-executes tests autonomously.
-\end{itemize}
-
-\section{Tutorial 3: Verifying Symplectic N-Body Orbit Invariants}
-
-\subsection{Problem Statement}
-In simulating planetary orbits (e.g. Earth around Sun), explicit non-symplectic integrators introduce secular energy growth that causes the planet to artificially spiral outward. The objective is to verify an astronomical N-body simulator using the symplectic Leapfrog scheme and prove zero secular energy growth over $10^4$ integration steps.
-
-\subsection{Executing with /science-mode}
-\begin{lstlisting}
-/science-mode implement a symplectic 2-body orbit propagator in orbit_sim.py.
-Use the Drift-Kick-Drift Leapfrog integrator.
-Verify that:
-1. Relative energy drift |E(t) - E(0)| / |E(0)| stays below 1e-10 over 10000 steps.
-2. Angular momentum is conserved to within 1e-14.
-3. Validate orbital elements conversion against benchmarks/astronomy/kepler_solver.py.
-\end{lstlisting}
-
-\subsection{Verification and Invariant Output}
-\begin{enumerate}
-    \item \texttt{science-mode} routes the task to the \texttt{equation-implementation} playbook and loads the \texttt{astronomy-computing} skill.
-    \item \texttt{science-master} implements the Drift-Kick-Drift scheme and energy tracking in \texttt{orbit\_sim.py}.
-    \item \texttt{theory-reviewer} audits the gravitational acceleration formulas to verify Newton's third law ($\mathbf{F}_{ji} = -\mathbf{F}_{ij}$) to prevent artificial momentum creation.
-    \item Tests demonstrate that the energy drift oscillates boundedly at $\sim 5 \times 10^{-11}$ without any secular slope, confirming symplectic structure preservation.
-\end{enumerate}
-
-% -------------------------------------------------------------
-% Chapter 9: Antigravity Technical Adapter Reference
-% -------------------------------------------------------------
-\chapter{Antigravity Technical Adapter Reference}
-
-\section{Runtime Tool Mapping}
-
-The \texttt{rules/AGENTS.md} rule automatically injected by \texttt{scienceStack} instructs Antigravity how to translate Agent Plugin conventions into native Antigravity primitives:
-
-\begin{table}[h!]
+\section{Reference Benchmarks}
+\begin{table}[h]
 \centering
 \small
-\begin{tabularx}{\textwidth}{p{4.2cm} p{4.2cm} X}
+\begin{tabular}{p{4.6cm}p{6cm}p{3.6cm}}
 \toprule
-\textbf{Cursor / Standard Tool} & \textbf{Antigravity Equivalent} & \textbf{Operational Directives} \\
+\textbf{Script} & \textbf{Reference} & \textbf{Source} \\
 \midrule
-\texttt{Task} & \texttt{invoke\_subagent} & Background execution; sets \texttt{TypeName} and \texttt{Role}. \\
-\texttt{AskQuestion} & \texttt{ask\_question} & Multi-choice interactive prompts. \\
-\texttt{TodoWrite} & Brain Artifacts & Persistent Markdown state in \texttt{\textless appDataDir\textgreater/brain/\textless id\textgreater/}. \\
-\texttt{Bash} & \texttt{run\_command} & Shell execution (\texttt{rg}, \texttt{find}, \texttt{pytest}). \\
-\texttt{Read / Edit} & \texttt{read\_file / edit\_file} & Exact character-sequence replacement tools. \\
-\texttt{environment: "cloud"} & \texttt{Workspace: "branch"} & Clones/branches workspace for clean isolation. \\
-\texttt{environment: "local"} & \texttt{Workspace: "inherit"} & Shares root repository directly. \\
+\texttt{cfd/exact\_riemann.py} & Sod star state $p_*=0.30313$, $u_*=0.92745$ ($\gamma=1.4$) & Toro (2009), Table 4.1 \\
+\texttt{astronomy/lane\_emden\_solver.py} & $\xi_1=\pi$ for $n=1$; $3.65375$ for $n=1.5$; $6.89685$ for $n=3$ & standard polytrope values \\
+\texttt{astronomy/kepler\_solver.py} & conserved $E$ and $\mathbf L$ & analytic invariants \\
+\texttt{astronomy/symplectic\_nbody.py} & bounded energy error, conserved $\mathbf P$, $\mathbf L$ & symplectic structure \\
+\texttt{astronomy/coordinate\_transforms.py} & $R^TR=I$, $\det R=1$ & SO(3) \\
+\texttt{kinetics/robertson\_reference.py} & $y_1+y_2+y_3=1$ & mass conservation \\
 \bottomrule
-\end{tabularx}
-\caption{Adapter tool mapping in Google Antigravity.}
-\label{tab:adapter}
+\end{tabular}
+\caption{Benchmarks and what each is checked against.}
 \end{table}
 
-\section{Antigravity Brain Artifacts}
+\chapter{Testing}
+\begin{lstlisting}[language=bash]
+pytest tests/
+\end{lstlisting}
+The 594-test suite verifies safety hooks (import aliases, formatting resilience), the AST auditor, MMS and Jacobian generators, reference benchmarks, convergence order calculations, ratchet mechanics, and hash-chained verification evidence ledgers.
 
-All audit trails, convergence tables, and execution summaries generated by \texttt{scienceStack} are written to the Antigravity Artifact directory:
-\begin{center}
-    \texttt{\textless appDataDir\textgreater/brain/\textless conversation-id\textgreater/}
-\end{center}
-These artifacts support GitHub-style alerts (\texttt{NOTE}, \texttt{TIP}, \texttt{IMPORTANT}, \texttt{WARNING}, \texttt{CAUTION}), interactive Mermaid flowcharts, and embedded convergence plots.
-
-% -------------------------------------------------------------
-% Chapter 10: Complete Skill and Playbook Catalog
-% -------------------------------------------------------------
-\chapter{Complete Skill and Playbook Catalog}
-
-\section{Primary Scientific and Orchestration Skills}
-
-\begin{longtable}{>{\raggedright\arraybackslash\small\ttfamily}p{6.4cm} >{\raggedright\arraybackslash\small}p{8.8cm}}
-\toprule
-\rmfamily\bfseries Skill / Slash Command & \rmfamily\bfseries Description \& Purpose \\
-\midrule
-\endfirsthead
-\toprule
-\rmfamily\bfseries Skill / Slash Command & \rmfamily\bfseries Description \& Purpose \\
-\midrule
-\endhead
-/science-mode & Primary orchestrator. Matches user prompt to 6 scientific playbooks, manages subagents, and drives tasks to empirical verification. \\
-/setup-sciencestack & Configures model choices and reasoning budgets per role; generates \texttt{scstack-models.md}. \\
-/scientific-equation-verifier & 7-point theoretical audit for LaTeX provenance, signs, dimensions, and normalizations. \\
-/numerical-stability-audit & Deep inspection for condition numbers, catastrophic cancellation, zero division, and stiff ODEs. \\
-/golden-dataset-benchmark & Catalog of canonical test problems (CFD, FEM, MD, quantum) and reference dataset acquisition. \\
-/astronomy-computing & Specialized algorithms and invariants for astronomy, orbital mechanics (Kepler, symplectic N-body), stellar structure (Lane-Emden), and celestial SO(3) coordinate frames. \\
-/precision-audit & Audits floating-point precision hazards (float32 vs float64), condition numbers, and mixed-precision iterative refinement. \\
-/accelerated-scientific-computing & Memory layouts (row vs column major), SIMD vectorization, and precision guards for C++, Fortran, Julia, and JAX. \\
-/benchmark-checklist & Vets performance measurements (timers, warmups, repeat runs, $L_2$ parity) before reporting numbers. \\
-\bottomrule
-\end{longtable}
-
-\section{Scientific and Engineering Principles Catalog}
-
-\begin{notebox}{Token-Optimized Principle Architecture}
-To eliminate discovery prompt bloat, the 6 core scientific principles are bundled under \texttt{skills/science-mode/principles/} rather than registered as individual top-level discovery skills.
-\end{notebox}
-
-\begin{longtable}{>{\raggedright\arraybackslash\small\ttfamily}p{6.6cm} >{\raggedright\arraybackslash\small}p{8.6cm}}
-\toprule
-\rmfamily\bfseries Principle & \rmfamily\bfseries Rule \& Core Mandate \\
-\midrule
-\endfirsthead
-\toprule
-\rmfamily\bfseries Principle & \rmfamily\bfseries Rule \& Core Mandate \\
-\midrule
-\endhead
-equation-provenance & Continuous equation in LaTeX, literature citation, coordinate/sign documentation. \\
-dimensional-discipline & Validate $[LHS] = [RHS]$, non-dimensionalization, dimensionless transcendental inputs. \\
-preserve-conservation-laws & Explicitly monitor and conserve energy, mass, momentum, and norm invariants. \\
-numerical-stability-first & Eliminate cancellation; ban \texttt{inv(A) @ b}; use conditioned linear solvers. \\
-verify-analytical-limits & Method of Manufactured Solutions (MMS), closed-form benchmarks, $O(h^p)$ convergence. \\
-physics-modular-architecture & Isolate pure physical laws, forces, and equations of state into callable modules. \\
-\bottomrule
-\end{longtable}
-
-% -------------------------------------------------------------
-% Bibliography and Recommended Reading
-% -------------------------------------------------------------
 \chapter*{Recommended Literature \& References}
 \addcontentsline{toc}{chapter}{Recommended Literature \& References}
-
 \begin{enumerate}[itemsep=6pt]
-    \item \textbf{Numerical Methods \& Linear Algebra}:
-    \begin{itemize}
-        \item Trefethen, L. N., \& Bau III, D. (1997). \textit{Numerical Linear Algebra}. SIAM.
-        \item Golub, G. H., \& Van Loan, C. F. (2013). \textit{Matrix Computations}, 4th ed. Johns Hopkins University Press.
-        \item Higham, N. J. (2002). \textit{Accuracy and Stability of Numerical Algorithms}, 2nd ed. SIAM.
-    \end{itemize}
-    \item \textbf{Partial Differential Equations \& Verification}:
-    \begin{itemize}
-        \item Roache, P. J. (2009). \textit{Fundamentals of Verification and Validation}. Hermosa Publishers.
-        \item LeVeque, R. J. (2002). \textit{Finite Volume Methods for Hyperbolic Problems}. Cambridge University Press.
-        \item Salari, K., \& Knupp, P. (2000). \textit{Code Verification by the Method of Manufactured Solutions}. Sandia National Laboratories Report SAND2000-1444.
-    \end{itemize}
-    \item \textbf{Ordinary Differential Equations \& Chemical Kinetics}:
-    \begin{itemize}
-        \item Hairer, E., \& Wanner, G. (1996). \textit{Solving Ordinary Differential Equations II: Stiff and Differential-Algebraic Problems}, 2nd ed. Springer.
-        \item Robertson, H. H. (1966). ``The numerical integration of some systems of stiff ordinary differential equations.'' In \textit{Numerical Analysis: An Introduction}, pp. 178--182.
-    \end{itemize}
+    \item Trefethen, L. N., \& Bau III, D. (1997). \textit{Numerical Linear Algebra}. SIAM.
+    \item Golub, G. H., \& Van Loan, C. F. (2013). \textit{Matrix Computations}, 4th ed. Johns Hopkins University Press.
+    \item Higham, N. J. (2002). \textit{Accuracy and Stability of Numerical Algorithms}, 2nd ed. SIAM.
+    \item Hairer, E., Lubich, C., \& Wanner, G. (2006). \textit{Geometric Numerical Integration}, 2nd ed. Springer.
+    \item Roache, P. J. (2009). \textit{Fundamentals of Verification and Validation}. Hermosa Publishers.
+    \item Salari, K., \& Knupp, P. (2000). \textit{Code Verification by the Method of Manufactured Solutions}. Sandia National Laboratories, SAND2000-1444.
+    \item Toro, E. F. (2009). \textit{Riemann Solvers and Numerical Methods for Fluid Dynamics}, 3rd ed. Springer.
+    \item Hairer, E., \& Wanner, G. (1996). \textit{Solving Ordinary Differential Equations II}, 2nd ed. Springer.
 \end{enumerate}
 
 \end{document}

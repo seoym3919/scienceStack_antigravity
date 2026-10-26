@@ -90,8 +90,9 @@ def solve_robertson_implicit(
 
     mass_drift = abs(sum(y_final) - 1.0)
 
-    # Standard benchmark values at t = 1e5:
-    # y1 ~ 0.208, y2 ~ 8.3e-8, y3 ~ 0.792
+    # Reference values at t = 1e5 (Radau, BDF and LSODA at rtol 1e-12 agree to 5e-11 relative; see
+    # scripts/check_against_reference.py, ROBERTSON):
+    # y1 = 1.78659e-2, y2 = 7.27475e-8, y3 = 0.982134
     return {
         "t": t_final,
         "y": list(y_final),

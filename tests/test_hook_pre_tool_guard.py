@@ -205,10 +205,24 @@ class SubprocessTests(unittest.TestCase):
         code, out = run_hook(payload)
         self.assertEqual((code, out), (0, ""))
 
-    def test_empty_and_malformed_input_fail_open(self):
-        for bad in ("", "not json", "[]"):
+    def test_empty_input_means_no_payload(self):
+        self.assertEqual(run_hook(""), (0, ""))
+        self.assertEqual(run_hook("   \n"), (0, ""))
+
+    def test_malformed_input_fails_closed_with_an_ask_that_shows_the_error(self):
+        for bad in ("not json", "[]", "42", '"text"'):
             code, out = run_hook(bad)
-            self.assertEqual((code, out), (0, ""), bad)
+            self.assertEqual(code, 0, bad)
+            decision = json.loads(out)["hookSpecificOutput"]
+            self.assertEqual((decision["hookEventName"], decision["permissionDecision"]), ("PreToolUse", "ask"), bad)
+            self.assertIn("the hook itself failed", decision["permissionDecisionReason"])
+
+    def test_an_internal_error_fails_closed(self):
+        """A tool_input of the wrong type used to crash check() and be swallowed (fail open)."""
+        payload = json.dumps({"tool_name": "Write", "tool_input": "not an object"})
+        code, out = run_hook(payload)
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(out)["hookSpecificOutput"]["permissionDecision"], "ask")
 
     def test_antigravity_native_toolcall_format(self):
         deny_payload = json.dumps({

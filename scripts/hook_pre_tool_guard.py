@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 r"""
-scienceStack Antigravity & Agent Plugins PreToolUse Lifecycle Hook.
+scienceStack Claude Code PreToolUse Lifecycle Hook.
 
 Blocks three numerical hazards in scientific code before it is written:
  1. Explicit matrix inversion: numpy.linalg.inv, scipy.linalg.inv, scipy.sparse.linalg.inv,
@@ -14,9 +14,18 @@ docstrings and strings that merely mention ``inv(`` are not flagged. For an Edit
 on disk supplies the imports. Where Python cannot be parsed (a partial snippet, Cython, other
 languages), a conservative pattern match on comment-stripped text is used instead.
 
-Supports both Antigravity native PreToolUse payloads (`toolCall`: `write_file`, `edit_file`,
-`run_command`) and Agent Plugins / Claude Code PreToolUse payloads (`tool_name`: `Write`, `Edit`,
-`MultiEdit`, `Bash`).
+Guarded tools: Write, Edit, MultiEdit (scientific source files), and Bash (best effort: only when the
+command both writes to a scientific source file and contains an inversion call).
+
+Input  (stdin):  Claude Code PreToolUse JSON, e.g.
+    {"tool_name": "Write", "tool_input": {"file_path": "...", "content": "..."}}
+    {"tool_name": "Edit",  "tool_input": {"file_path": "...", "new_string": "..."}}
+    {"tool_name": "MultiEdit", "tool_input": {"file_path": "...", "edits": [{"new_string": "..."}]}}
+    {"tool_name": "Bash", "tool_input": {"command": "..."}}
+Output (stdout): a `hookSpecificOutput` deny decision, or nothing to defer to the normal permission flow.
+Fail closed: invalid input or an internal error prints an "ask" decision that shows the error, so a broken guard
+cannot silently let a hazard through (empty input means no payload and prints nothing). hooks.json also sets
+"onFailure": "block" on the file-edit entry for crashes before this code runs.
 """
 
 import ast
@@ -27,11 +36,12 @@ import sys
 import textwrap
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from hook_common import run_pre_tool_hook  # noqa: E402
 from inversion_detect import (  # noqa: E402
     FORBIDDEN_CALLS, import_aliases, is_inversion_call, is_truncated_pi, mutable_array_default,
 )
 
-SCIENTIFIC_EXTENSIONS = (".py", ".pyx", ".cpp", ".cc", ".c", ".cu", ".f90", ".f", ".jl", ".rs")
+SCIENTIFIC_EXTENSIONS = (".py", ".pyx", ".cpp", ".cu", ".f90", ".jl", ".rs")
 GUARDED_FILE_TOOLS = ("Write", "Edit", "MultiEdit")
 
 # Fallback for text that cannot be parsed as Python.
@@ -53,7 +63,7 @@ MUTABLE_REASON = (
 )
 _PI_RE = re.compile(r"(?<![0-9.])3\.141(?:59|6)(?![0-9])")
 _MUTABLE_RE = re.compile(r"def\s+\w+\s*\([^)]*=\s*(?:np|numpy)\.(?:zeros|ones|empty|array|full)\s*\(")
-SELF_REFERENCING = ("hook_pre_tool_guard", "audit_numerical_ast", "inversion_detect")
+SELF_REFERENCING = ("hook_pre_tool_guard", "audit_numerical_ast", "inversion_detect")   # name the patterns on purpose
 
 REASON = (
     "[scienceStack Safety Gate] Explicit matrix inversion ('inv') detected in proposed code. "
@@ -125,22 +135,6 @@ def text_has_inversion(text, context_tree=None):
     return violation_reason(text, context_tree) == REASON
 
 
-def _normalize_payload(payload):
-    """Normalize Antigravity native `toolCall` payload to `(tool_name, tool_input, cwd)`."""
-    if "toolCall" in payload and isinstance(payload["toolCall"], dict):
-        tc = payload["toolCall"]
-        raw_name = tc.get("name", "")
-        args = tc.get("args", {}) or {}
-        if raw_name == "write_file":
-            return "Write", {"file_path": str(args.get("Path", "")), "content": str(args.get("Content", ""))}, payload.get("cwd", "")
-        if raw_name == "edit_file":
-            return "Edit", {"file_path": str(args.get("Path", "")), "new_string": str(args.get("Replacement", ""))}, payload.get("cwd", "")
-        if raw_name == "run_command":
-            return "Bash", {"command": str(args.get("CommandLine", ""))}, payload.get("cwd", "")
-        return raw_name, args, payload.get("cwd", "")
-    return payload.get("tool_name", ""), payload.get("tool_input", {}), payload.get("cwd", "")
-
-
 def proposed_texts(tool_name, tool_input):
     """Return the list of text fragments a file tool call would add."""
     if tool_name == "Write":
@@ -154,9 +148,8 @@ def proposed_texts(tool_name, tool_input):
 
 def check(payload):
     """Return a denial reason for a PreToolUse payload, or None to allow."""
-    if not isinstance(payload, dict):
-        return None
-    tool_name, tool_input, cwd = _normalize_payload(payload)
+    tool_name = payload.get("tool_name", "")
+    tool_input = payload.get("tool_input", {})
 
     if tool_name == "Bash":
         command = tool_input.get("command", "")
@@ -167,6 +160,7 @@ def check(payload):
 
     if tool_name not in GUARDED_FILE_TOOLS:
         return None
+    # Only check scientific and numerical code files
     if not tool_input.get("file_path", "").endswith(SCIENTIFIC_EXTENSIONS):
         return None
 
@@ -174,7 +168,7 @@ def check(payload):
     if any(name in path for name in SELF_REFERENCING):
         return None
     python_file = path.endswith((".py", ".pyx"))
-    context = _context_tree(tool_input, cwd)
+    context = _context_tree(tool_input, payload.get("cwd", ""))
     for fragment in proposed_texts(tool_name, tool_input):
         reason = violation_reason(fragment, context, python_file)
         if reason:
@@ -182,32 +176,13 @@ def check(payload):
     return None
 
 
+def decide(payload):
+    reason = check(payload)
+    return {"decision": "deny", "reason": reason} if reason else None
+
+
 def main():
-    try:
-        raw_input = sys.stdin.read()
-        if not raw_input.strip():
-            return
-        payload = json.loads(raw_input)
-        if not isinstance(payload, dict):
-            return
-        reason = check(payload)
-        is_antigravity_call = "toolCall" in payload
-        if reason:
-            out = {
-                "decision": "deny",
-                "reason": reason,
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": reason,
-                },
-            }
-            print(json.dumps(out))
-        elif is_antigravity_call:
-            print(json.dumps({"decision": "allow"}))
-    except Exception:
-        # Failsafe: never crash the tool loop on hook exception
-        pass
+    return run_pre_tool_hook(decide, "safety gate")
 
 
 if __name__ == "__main__":

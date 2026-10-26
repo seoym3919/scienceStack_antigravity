@@ -39,7 +39,7 @@ Stellar Structure Parameters:
 
 Exact Analytical Benchmarks:
 ============================
-- $n = 0$: $\theta(\xi) = 1 - \frac{\xi^2}{6}$, $\xi_1 = \sqrt{6} \approx 2.4494897$, $\omega_0 = \frac{2\sqrt{6}}{3} \approx 4.898979$
+- $n = 0$: $\theta(\xi) = 1 - \frac{\xi^2}{6}$, $\xi_1 = \sqrt{6} \approx 2.4494897$, $\omega_0 = -\xi_1^2 \theta'(\xi_1) = 2\sqrt{6} \approx 4.898979$
 - $n = 1$: $\theta(\xi) = \frac{\sin\xi}{\xi}$, $\xi_1 = \pi \approx 3.14159265$, $\omega_1 = \pi \approx 3.14159265$
 - $n = 5$: $\theta(\xi) = \left(1 + \frac{\xi^2}{3}\right)^{-1/2}$, $\xi_1 \to \infty$ (Plummer sphere)
 

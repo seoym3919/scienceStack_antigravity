@@ -1,0 +1,65 @@
+# TEMPLATE - copy to .github/workflows/reference-checks.yml in YOUR project and edit the marked lines.
+# (It lives under examples/ in the plugin because the token used to publish the plugin cannot push workflow files.)
+#
+# What it does: re-runs every check listed in reference-checks.json from a clean checkout, refuses test changes that
+# weaken the suite (test_ratchet.py), runs the tests with real counts (run_tests.py), and refuses a pull request
+# that deletes a check, raises a tolerance, or points a check at a different reference, unless the manifest carries an
+# "approved_relaxation" reason for it. A clean re-run in CI is the one verification step that does not depend on files
+# an agent or a developer could have edited locally, so it is the real gate; the local evidence log is a convenience.
+name: reference-checks
+on:
+  pull_request:
+
+jobs:
+  reference-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0                       # the ratchet needs the base branch's manifest
+
+      - uses: actions/checkout@v4              # the checker itself
+        with:
+          repository: seoym3919/scienceStack_claude    # EDIT: where the plugin lives
+          ref: main                                    # EDIT: pin a commit SHA or tag, not a branch
+          token: ${{ secrets.PLUGIN_REPO_TOKEN }}      # EDIT: needed only while that repository is private
+          path: .scienceStack
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install what the solvers need
+        run: pip install numpy scipy           # EDIT
+
+      - name: Run the reference checks (exit 0 pass, 1 fail, 2 not checked, 3 weakened or withheld)
+        run: >
+          python3 .scienceStack/scripts/check_against_reference.py run-manifest
+          --manifest reference-checks.json
+          --baseline-ref origin/${{ github.base_ref }}
+          --evidence-dir "$RUNNER_TEMP/verification"
+          --json "$RUNNER_TEMP/reference-checks.json"
+
+      - name: Tests must not get weaker than on the base branch (exit 3 lists every unapproved weakening)
+        run: >
+          python3 .scienceStack/scripts/test_ratchet.py
+          --baseline-ref origin/${{ github.base_ref }}
+          --evidence-dir "$RUNNER_TEMP/verification"
+
+      - name: Run the test suite and record the real counts
+        run: >
+          python3 .scienceStack/scripts/run_tests.py unittest --start-dir tests
+          --evidence-dir "$RUNNER_TEMP/verification"
+        # or: python3 .scienceStack/scripts/run_tests.py pytest --evidence-dir "$RUNNER_TEMP/verification" -- -q tests
+
+      - name: Check the evidence log chain
+        if: always()
+        run: python3 .scienceStack/scripts/check_against_reference.py evidence verify --evidence-dir "$RUNNER_TEMP/verification"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reference-checks
+          path: |
+            ${{ runner.temp }}/reference-checks.json
+            ${{ runner.temp }}/verification/log.jsonl
