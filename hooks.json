@@ -6,12 +6,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./scripts/hook_pre_tool_guard.py",
+            "command": "python3 ./scripts/hook_pre_tool_guard.py",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "./scripts/hook_test_guard.py",
+            "command": "python3 ./scripts/hook_test_guard.py",
             "timeout": 30
           }
         ]
@@ -23,7 +23,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./scripts/hook_record_edit.py",
+            "command": "python3 ./scripts/hook_record_edit.py",
             "timeout": 10
           }
         ]
@@ -32,7 +32,7 @@
     "Stop": [
       {
         "type": "command",
-        "command": "./scripts/hook_stop_gate.py",
+        "command": "python3 ./scripts/hook_stop_gate.py",
         "timeout": 60
       }
     ]
