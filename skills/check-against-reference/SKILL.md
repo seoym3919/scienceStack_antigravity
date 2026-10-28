@@ -51,13 +51,14 @@ compared with the claim.
   observed order (`order_min`) and the number of levels (`levels_min`), so lowering the claim, widening the margin or
   using fewer levels after a failure is withheld like any other loosening.
 
-## Reproducibility (`--repeat`)
+## Reproducibility (`--repeat`, default 2)
 
-`--repeat 2` calls the solver twice (up to 10 times) on every input and fails the case if the answers differ by more than
+`--repeat` defaults to 2: the solver is called twice (up to 10 times) on every input and the case fails if the answers differ by more than
 `--repeat-tol` (relative to 1 + |value|, default 0 = identical). This catches unseeded randomness, state kept between
-calls, and a solver that overwrites its input in place. Threaded reductions can legitimately differ in the last bits:
+calls, and a solver that overwrites its input in place. Pass `--repeat 1` only to skip the check. Threaded reductions can legitimately differ in the last bits:
 state a `--repeat-tol` (for example 1e-12) rather than dropping the check. Fewer repeats or a larger `--repeat-tol`
-after a failure is withheld. In a manifest use `repeat` and `repeat_tol` (`repeat_tol` needs `repeat >= 2`).
+after a failure is withheld. In a manifest, omitted `repeat` means 2. `repeat_tol` needs `repeat` of at least 2 (the default counts).
+The child process is started with `PYTHONHASHSEED=0`, `OMP_NUM_THREADS=1` and `MKL_NUM_THREADS=1`. `PYTHONHASHSEED` does not reseed the current interpreter.
 
 ## Tolerance rules (do not work around them)
 
@@ -85,10 +86,7 @@ files). Lines are hash-chained, so an edited or removed line is detected by `evi
 
 - `evidence fresh --subject solver.py` exits 0 only if the latest record for that file is a pass **and the file is
   unchanged since**. Before saying a solver is validated, run it (or run the check again); a stale or missing record is not evidence.
-- **Exit 3, verdict withheld:** the tolerance is larger than in the previous *failed* run of the same check and the solver
-  (and any `--subject` files) did not change. That is "raise the tolerance until it passes". Fix the solver; or, if the
-  earlier tolerance really was wrong, rerun with `--justify "<why>"` and tell the user, quoting the reason. Do not invent a
-  justification to get past the exit code. If the solver did change, the run is allowed and only flagged. Repeating the command does not release it, and files named with `--subject` make the evidence stale when they change but cannot release it. A new `--evidence-dir` starts an empty history; a local log cannot prevent that, so a clean re-run in CI is the gate.
+- **Exit 3, verdict withheld:** the tolerance is looser than in the previous *failed* run of the same check (a larger limit, a smaller `*_min`, or a dropped numeric key) and the primary files did not change. Fix the solver. A `--justify` sentence is recorded and does not release the verdict. Release needs `tolerance-approvals.json` (schema `verification-tolerance-approvals/1`) naming the check key, the SHA-256 of the previous failed log line, the old tolerance, the new tolerance, and a reason of at least 10 characters. A manifest `approved_relaxation` writes that entry from the previous failed log line; it is not a `--justify` sentence. If the solver did change, the run is allowed and only flagged. Repeating the command does not release it, and files named with `--subject` cannot release it. A new `--evidence-dir` starts an empty history; a clean re-run in CI is the gate.
 - If the log cannot be written, a pass becomes exit 2 (a pass without evidence is not a pass); a failure stays 1.
 - Limits: the log is a local file. Anything running as the user can rewrite the whole file, and a truncated tail is not
   detected. Only a clean re-run in CI is an unforgeable gate (next section).

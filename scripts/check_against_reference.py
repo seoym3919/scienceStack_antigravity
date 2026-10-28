@@ -9,12 +9,13 @@ check_against_reference.py - run YOUR solver on a canonical problem and compare 
     check_against_reference.py check-manifest [--manifest FILE]
     check_against_reference.py evidence verify|show|fresh
 
-A solver can be required to be reproducible: `--repeat 2` calls it twice on every input and fails the case if the answers
-differ by more than `--repeat-tol` (relative to 1 + |value|; default 0 = identical), which catches unseeded randomness
-and unsynchronised threads. Exit status: 0 every case passed; 1 a case failed (wrong value, solver raised, NaN/Inf, timeout);
-2 nothing was checked (bad arguments, tolerance the reference cannot resolve, solver cannot be loaded, evidence
-could not be recorded); 3 verdict withheld: the tolerance was loosened after a failure on unchanged files (add
---justify "reason"), or a manifest check was removed or relaxed against the baseline. Highest code wins.
+A solver is checked for reproducibility by default: `--repeat` (default 2) calls it that many times on every input and
+fails the case if the answers differ by more than `--repeat-tol` (relative to 1 + |value|; default 0 = identical), which
+catches unseeded randomness and unsynchronised threads. Pass `--repeat 1` to skip that check. Exit status: 0 every case
+passed; 1 a case failed (wrong value, solver raised, NaN/Inf, timeout); 2 nothing was checked (bad arguments, tolerance
+the reference cannot resolve, solver cannot be loaded, evidence could not be recorded); 3 verdict withheld: the tolerance
+was loosened after a failure on unchanged files (a --justify sentence does not release it; a tolerance-approvals.json
+entry does), or a manifest check was removed or relaxed against the baseline. Highest code wins.
 
 Every `run` and `compare` appends a record to ./.verification/log.jsonl (see verification_evidence.py): the verdict,
 the tolerance and the SHA-256 of the solver (or of the reference and test files). `--no-evidence` turns that off.
@@ -561,6 +562,7 @@ def run_benchmark(bench: Benchmark, solver: Callable, tol: float, relaxed: Optio
     return {"benchmark": bench.name, "checker_version": CHECKER_VERSION, "passed": all(r["passed"] for r in results),
             "tolerance_used": tol, "tolerance_default": bench.default_tol, "relaxed": relaxed,
             "repeat": {"calls": args.repeat, "tolerance": args.repeat_tol},
+            "runtime": ve.pin_runtime_env(),
             "convergence": ({"order": cases[0]["order"], "levels": len(cases[0]["calls"]), "base": cases[0]["calls"][0][-1]
                              if bench.name == "convergence-ode" else cases[0]["calls"][0][0]}
                             if bench.kind == "convergence" else None),
@@ -585,7 +587,7 @@ def format_report(result: Dict[str, Any]) -> str:
             lines.append("- **Tolerance was loosened after a failed run of this check** "
                          f"({'files unchanged' if 'subjects_unchanged' in evidence['flags'] else 'files changed since'})")
         if "withheld" in evidence["flags"]:
-            lines.append("- **VERDICT WITHHELD**: loosened after a failure on unchanged files, no --justify given")
+            lines.append("- **VERDICT WITHHELD**: loosened after a failure on unchanged files; a --justify sentence does not release it")
         if evidence.get("justification"):
             lines.append(f"- Justification recorded: {evidence['justification']}")
     else:
@@ -648,7 +650,8 @@ def load_values(path: str) -> List[float]:
 def compare_values(ref: List[float], test: List[float], rtol: float, atol: float) -> Dict[str, Any]:
     """Elementwise |test - ref| <= atol + rtol |ref|. Different lengths, no values, NaN or Inf fail."""
     result: Dict[str, Any] = {"mode": "compare", "checker_version": CHECKER_VERSION, "passed": False,
-                              "rtol": rtol, "atol": atol, "n_ref": len(ref), "n_test": len(test)}
+                              "rtol": rtol, "atol": atol, "n_ref": len(ref), "n_test": len(test),
+                              "runtime": ve.pin_runtime_env()}
     if not ref and not test:
         result["reason"] = "both files hold no numbers: nothing was compared"
     elif len(ref) != len(test):
@@ -746,6 +749,36 @@ def load_baseline(manifest_path: Path, ref: str) -> Optional[Dict[str, Any]]:
         raise UsageError(f"the manifest at {ref} is not valid JSON")
 
 
+def _approval_entry(check: Dict[str, Any], base: Path, args, new_tolerance: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """One tolerance-approvals entry for a manifest approved_relaxation, or None if nothing is withheld yet."""
+    reason = (check.get("approved_relaxation") or "").strip()
+    if not reason:
+        return None
+    log = ve.log_path(str(args.evidence_dir or base / ".verification"))
+    records, _problems = ve.read_log(log)
+    key = f"manifest:{check['id']}"
+    previous = next((r for r in reversed(records)
+                     if r.get("key") == key and r.get("exit_status") != ve.EXIT_WITHHELD), None)
+    if previous is None or previous.get("passed") is not False or not isinstance(previous.get("_line"), str):
+        return None
+    return {"key": key, "prev": previous["_line"], "old_tolerance": previous.get("tolerance") or {},
+            "new_tolerance": new_tolerance, "reason": "approved relaxation: " + reason}
+
+
+def _planned_run_tolerance(check: Dict[str, Any]) -> Dict[str, Any]:
+    """The tolerance dict the child `run` records, including the default repeat of 2."""
+    bench = BENCHMARKS[check["benchmark"]]
+    namespace = argparse.Namespace(
+        repeat=2 if check.get("repeat") is None else int(check["repeat"]),
+        repeat_tol=0.0 if check.get("repeat_tol") is None else float(check["repeat_tol"]),
+        order=None if check.get("order") is None else float(check["order"]),
+        levels=check.get("levels"),
+    )
+    requested = None if check.get("tol") is None else float(check["tol"])
+    tol, _relaxed = resolve_tolerance(bench, requested)
+    return run_tolerance(bench, tol, namespace)
+
+
 def run_built_compare(check: Dict[str, Any], base: Path, args) -> Dict[str, Any]:
     """A manifest compare check whose reference and/or test output is PRODUCED by running programs (see reference_build.py).
 
@@ -788,13 +821,14 @@ def run_built_compare(check: Dict[str, Any], base: Path, args) -> Dict[str, Any]
         tolerance.update(reproduce_rtol=float(ref_spec["reproduce_rtol"]), reproduce_atol=float(ref_spec["reproduce_atol"]))
     evidence = None
     if not args.no_evidence:
+        entry = _approval_entry(check, base, args, tolerance)
         ns = argparse.Namespace(no_evidence=False, evidence_dir=str(args.evidence_dir or base / ".verification"),
-                                justify=("approved relaxation: " + check["approved_relaxation"]) if check.get("approved_relaxation") else None,
+                                justify=None, tolerance_approval=None, approvals=[entry] if entry else None,
                                 subject=None, check_id=check["id"])
         evidence = ve.record_cli(ns, tool=TOOL, plugin=PLUGIN_NAME, kind="compare", name="compare", key="compare:" + check["id"],
                                  passed=result["passed"], tolerance=tolerance, subject_paths=list(dict.fromkeys(subjects)),
                                  detail={"built": result["built"], "reason": result.get("reason"),
-                                         "checker_version": CHECKER_VERSION})
+                                         "checker_version": CHECKER_VERSION, "runtime": ve.pin_runtime_env()})
     result["evidence"] = evidence
     return {"id": check["id"], "exit_status": ve.finish("check_against_reference", result["passed"], evidence),
             "stderr": result.get("reason", "") or "", "passed": result["passed"], "result": result}
@@ -861,7 +895,16 @@ def run_one_check(check: Dict[str, Any], base: Path, args) -> Dict[str, Any]:
             if check.get("timeout_s") is not None:
                 cmd += ["--timeout-s", str(check["timeout_s"])]
         if check.get("approved_relaxation"):
-            cmd += ["--justify", "approved relaxation: " + check["approved_relaxation"]]
+            if "compare" in check:
+                inner = check["compare"]
+                new_tolerance = {"rtol": float(inner["rtol"]), "atol": float(inner["atol"])}
+            else:
+                new_tolerance = _planned_run_tolerance(check)
+            entry = _approval_entry(check, base, args, new_tolerance)
+            if entry:
+                approval_path = Path(tmp) / "tolerance-approvals.json"
+                approval_path.write_text(json.dumps({"schema": ve.APPROVAL_SCHEMA, "approvals": [entry]}))
+                cmd += ["--tolerance-approval", str(approval_path)]
         done = subprocess.run([sys.executable, "-B", str(Path(__file__).resolve()), *cmd], capture_output=True, text=True,
                               cwd=base)
         result = json.loads(out.read_text()) if out.exists() else None
@@ -904,8 +947,8 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--order", type=float, help="convergence benchmarks: the order of accuracy you claim (required there)")
     run.add_argument("--steps", type=int, help="convergence benchmarks: base resolution N (default 16 for ode, 8 for bvp)")
     run.add_argument("--levels", type=int, help="convergence benchmarks: number of resolutions N, 2N, 4N, ... (3-8, default 5)")
-    run.add_argument("--repeat", type=int, default=1,
-                     help="call the solver this many times on each input and require the same answer (1-10; default 1)")
+    run.add_argument("--repeat", type=int, default=2,
+                     help="call the solver this many times on each input and require the same answer (1-10; default 2)")
     run.add_argument("--repeat-tol", type=float, default=0.0,
                      help="allowed difference between repeated answers, relative to 1 + |value| (default 0: identical)")
     run.add_argument("--json", help="write the full result as JSON")
@@ -945,6 +988,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     fresh_bytecode_cache()
+    ve.pin_runtime_env()
     try:
         if args.command == "list":
             print(json.dumps([b.describe() for b in BENCHMARKS.values()], indent=2))
@@ -971,7 +1015,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     passed=result["passed"], subject_paths=[source],
                     tolerance=run_tolerance(bench, tol, args),
                     detail={"cases": len(result["cases"]), "failed_cases": len(failed), "largest_error": worst,
-                            "relaxed": relaxed, "checker_version": CHECKER_VERSION})
+                            "relaxed": relaxed, "checker_version": CHECKER_VERSION, "runtime": ve.pin_runtime_env()})
             result["evidence"] = evidence
             report = format_report(result)
             print(report)
@@ -993,7 +1037,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     subject_paths=[args.ref, args.test], tolerance={"rtol": args.rtol, "atol": args.atol},
                     detail={"n_ref": result["n_ref"], "n_test": result["n_test"],
                             "worst_error_over_allowed": result.get("worst_error_over_allowed"),
-                            "checker_version": CHECKER_VERSION})
+                            "checker_version": CHECKER_VERSION, "runtime": ve.pin_runtime_env()})
             result["evidence"] = evidence
             print(json.dumps(result, indent=2))
             if args.json:

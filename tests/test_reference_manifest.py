@@ -109,8 +109,8 @@ class Validation(unittest.TestCase):
         self.assertEqual(errors(with_check(0, repeat=2, repeat_tol=1e-12)), [])
         self.assertEqual(errors(with_check(0, repeat=10, repeat_tol=0)), [])
 
-    def test_repeat_tol_without_repeat_is_rejected(self):
-        self.assert_error(with_check(0, repeat_tol=1e-6), "no effect without repeat >= 2")
+    def test_repeat_tol_with_a_single_call_is_rejected(self):
+        self.assertEqual(errors(with_check(0, repeat_tol=1e-6)), [])          # omitted repeat is the default of 2
         self.assert_error(with_check(0, repeat=1, repeat_tol=1e-6), "no effect without repeat >= 2")
         self.assertEqual(errors(with_check(0, repeat=2, repeat_tol=1e-6)), [])
 
@@ -241,13 +241,13 @@ class Ratchet(unittest.TestCase):
 
     def test_effective_tolerance_always_includes_the_determinism_settings(self):
         base = rm.effective_tolerance(GOOD["checks"][1], car.BENCHMARKS)
-        self.assertEqual(base, {"tol": 1e-4, "repeat_min": 1.0, "repeat_tol": float("inf")})     # one call: nothing compared
+        self.assertEqual(base, {"tol": 1e-4, "repeat_min": 2.0, "repeat_tol": 0.0})     # omitted repeat is the default of 2
         both = rm.effective_tolerance(with_check(1, repeat=3, repeat_tol=1e-12)["checks"][1], car.BENCHMARKS)
         self.assertEqual((both["repeat_min"], both["repeat_tol"]), (3.0, 1e-12))
 
     def test_fewer_repeats_or_a_larger_repeat_tol_is_a_violation_more_is_not(self):
         strict = with_check(1, repeat=3, repeat_tol=1e-12)
-        for change, text in ((dict(repeat=2), "repeat_min loosened from 3 to 2"), (dict(repeat=None), "repeat_min loosened from 3 to 1"),
+        for change, text in ((dict(repeat=2), "repeat_min loosened from 3 to 2"), (dict(repeat=None), "repeat_min loosened from 3 to 2"),
                              (dict(repeat_tol=1e-9), "repeat_tol loosened"), (dict(repeat_tol=None), None)):
             current = copy.deepcopy(strict)
             for key, value in change.items():
@@ -261,7 +261,7 @@ class Ratchet(unittest.TestCase):
             else:
                 self.assertIn(text, result["violations"][0]["problem"], change)
         self.assertEqual(self.ratchet(with_check(1, repeat=5, repeat_tol=1e-13), strict)["violations"], [])    # stricter
-        self.assertEqual(self.ratchet(strict, GOOD)["violations"], [])                                           # adding repeats
+        self.assertEqual(self.ratchet(with_check(1, repeat=5), GOOD)["violations"], [])                         # more repeats, same repeat_tol 0
 
     def convergence(self, **changes):
         check = {"id": "rk4", "rationale": "our RK4 stepper must be fourth order", "benchmark": "convergence-ode",
@@ -292,8 +292,9 @@ class Ratchet(unittest.TestCase):
         self.assertAlmostEqual(a["order_min"], b["order_min"], delta=1e-12)
 
     def test_adding_a_determinism_check_to_an_old_manifest_is_a_tightening(self):
-        """Regression: repeat_tol rising from the default 0 to 1e-12 was reported as a loosening although a check appeared."""
-        self.assertEqual(self.ratchet(with_check(1, repeat=2, repeat_tol=1e-6), GOOD)["violations"], [])
+        """repeat 1 compares nothing. Moving to repeat 2 is stricter even when the new check states a repeat_tol."""
+        old = with_check(1, repeat=1)
+        self.assertEqual(self.ratchet(with_check(1, repeat=2, repeat_tol=1e-6), old)["violations"], [])
 
 
     def test_changing_the_solver_path_alone_is_not_weakening(self):

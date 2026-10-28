@@ -15,7 +15,7 @@
 
    When an earlier mantra meets the target, stop.
 3. Plan the fix from the profile. If it crosses a function boundary, sketch the change first. Delegate implementation to a subagent (`sciencestack:science-master`) with a specific scope. Review the diff. Capture a post-fix measurement with the same harness. Verify each attempt before trying the next.
-4. Prove the optimization did not change the science: assert $L_2$ parity against the pre-change output (default $< 10^{-12}$, or the tolerance already recorded for the routine), and re-check conserved quantities. A speedup that moves the answer is a bug.
+4. Prove the optimization did not change the science: compare the new output with the pre-change output elementwise, $|new - old| \le atol + rtol|old|$, at the tolerance already recorded for the routine (default rtol $10^{-12}$, atol 0), including the sign of zero. Re-check conserved quantities. A speedup that moves the answer is a bug. A relative $L_2$ may be reported; it is not the pass rule.
 5. Compare the artifacts (JSON, CSV, or sqlite plus a diff). "Inconclusive" or wrong-surface is not a pass; flag it.
 6. Cite the measurement in the commit message or PR description.
 

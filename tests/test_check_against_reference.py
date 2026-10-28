@@ -470,7 +470,7 @@ class Repeat(Harness):
 
     def test_without_repeat_nothing_is_checked_and_the_report_says_so(self):
         report = self.dir / "r.md"
-        done, data = self.run_bench("kepler", KEPLER_NOISY, "--report", str(report))
+        done, data = self.run_bench("kepler", KEPLER_NOISY, "--repeat", "1", "--report", str(report))
         self.assertEqual(done.returncode, 0, done.stdout)                           # the noise is far below the tolerance
         self.assertIn("Reproducibility not checked", report.read_text())
         self.assertNotIn("repeat_max_difference", data["cases"][0])
@@ -535,10 +535,20 @@ class Repeat(Harness):
         """The determinism check failed; running the same solver again without it must not simply pass."""
         solver = self.solver(KEPLER_NOISY)
         self.assertEqual(self.run_cli("run", "kepler", "--solver", solver, "--repeat", "2").returncode, 1)
-        self.assertEqual(self.run_cli("run", "kepler", "--solver", solver).returncode, 3)                    # repeat_min 2 -> 1
+        self.assertEqual(self.run_cli("run", "kepler", "--solver", solver, "--repeat", "1").returncode, 3)
         self.assertEqual(self.run_cli("run", "kepler", "--solver", solver, "--repeat", "2", "--repeat-tol", "1e-12").returncode, 3)
-        self.assertEqual(self.run_cli("run", "kepler", "--solver", solver, "--repeat", "2", "--repeat-tol", "1e-12",
-                                      "--justify", "BLAS threads reorder the sum; 1e-12 stated in the spec").returncode, 0)
+        failed = ve.read_log(self.dir / ".verification" / "log.jsonl")[0]
+        previous = next(r for r in reversed(failed) if r.get("exit_status") != 3 and r.get("passed") is False)
+        new_tol = dict(previous["tolerance"])
+        new_tol["repeat_tol"] = 1e-12
+        reason = "approved relaxation: BLAS threads reorder the sum; 1e-12 stated in the spec"
+        payload = {"schema": ve.APPROVAL_SCHEMA, "approvals": [{
+            "key": previous["key"], "prev": previous["_line"], "old_tolerance": previous["tolerance"],
+            "new_tolerance": new_tol, "reason": reason}]}
+        (self.dir / ".verification" / "tolerance-approvals.json").write_text(json.dumps(payload))
+        released = self.run_cli("run", "kepler", "--solver", solver, "--repeat", "2", "--repeat-tol", "1e-12")
+        self.assertEqual(released.returncode, 0, released.stdout + released.stderr)
+        self.assertEqual(ve.read_log(self.dir / ".verification" / "log.jsonl")[0][-1]["justification"], reason)
 
 
 ODE_HEADER = (
@@ -706,7 +716,7 @@ class ConvergenceOde(ConvergenceCli):
 
     def test_an_integrator_that_overwrites_its_input_is_caught_by_repeat(self):
         """Without --repeat the first call on each problem is correct; the second call starts from the mutated state."""
-        done, data = self.conv("convergence-ode", ODE_MUTATES_INPUT, 1)
+        done, data = self.conv("convergence-ode", ODE_MUTATES_INPUT, 1, "--repeat", "1")
         self.assertEqual(done.returncode, 0, done.stdout)
         done, data = self.conv("convergence-ode", ODE_MUTATES_INPUT, 1, "--repeat", "2", "--no-evidence")
         self.assertEqual(done.returncode, 1)
@@ -785,8 +795,17 @@ class ConvergenceOde(ConvergenceCli):
         self.assertEqual(self.conv("convergence-ode", ODE_EULER, 4)[0].returncode, 1)
         self.assertEqual(self.conv("convergence-ode", ODE_EULER, 1)[0].returncode, 3)            # order_min 3.75 -> 0.75
         self.assertEqual(self.conv("convergence-ode", ODE_EULER, 1)[0].returncode, 3)            # rerunning does not release it
-        done, _ = self.conv("convergence-ode", ODE_EULER, 1, "--justify", "the scheme is first order by design")
-        self.assertEqual(done.returncode, 0)
+        log = self.dir / ".verification" / "log.jsonl"
+        previous = next(r for r in reversed(ve.read_log(log)[0]) if r.get("exit_status") != 3 and r.get("passed") is False)
+        new_tol = dict(previous["tolerance"])
+        new_tol["order_min"] = 0.75
+        reason = "approved relaxation: the scheme is first order by design"
+        (log.parent / "tolerance-approvals.json").write_text(json.dumps({
+            "schema": ve.APPROVAL_SCHEMA, "approvals": [{
+                "key": previous["key"], "prev": previous["_line"], "old_tolerance": previous["tolerance"],
+                "new_tolerance": new_tol, "reason": reason}]}))
+        done, _ = self.conv("convergence-ode", ODE_EULER, 1)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
 
     def test_fewer_levels_or_a_wider_margin_after_a_failure_are_withheld(self):
         self.assertEqual(self.conv("convergence-ode", ODE_EULER, 2)[0].returncode, 1)

@@ -8,6 +8,20 @@ argument-hint: "<file_or_dir>"
 
 Scan and diagnose scientific code for numerical instability, ill-conditioning, and floating-point precision loss.
 
+## Run the scanner first
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit_numerical_ast.py" <file_or_dir> --strict
+```
+
+It flags matrix inversion (error), cancellation patterns, float32, truncated pi and mutable array defaults, and
+**nondeterminism**: draws from a global random state the file never seeds (`UNSEEDED_RANDOM_DRAW`), generators created
+without a seed (`UNSEEDED_GENERATOR`), seeds taken from the clock, process id or OS entropy (`NONDETERMINISTIC_SEED`),
+and sources that cannot be seeded (`NONDETERMINISTIC_SOURCE`). Seed where the draws are made; a seed set in another
+file looks unseeded to the scanner. It does not see JAX keys (deterministic), TensorFlow or scikit-learn defaults,
+set/dict ordering or thread scheduling: `check_against_reference.py run` already calls the solver twice (`--repeat` default 2) to catch a solver whose
+answers actually differ between identical calls.
+
 ## Vulnerability Patterns & Mitigations
 
 ### 1. Catastrophic Cancellation ($a - b$ when $a \approx b$)

@@ -266,7 +266,7 @@ class Manifest(Project):
 
     def test_the_determinism_requirement_cannot_be_dropped_quietly(self):
         strict = json.loads(json.dumps(MANIFEST))
-        strict["checks"][0].update(repeat=2)
+        strict["checks"][0].update(repeat=4)
         (self.root / "reference-checks.json").write_text(json.dumps(strict, indent=2))
         self.assert_ask(self.run_hook(self.manifest_edit(lambda m: m["checks"][0].pop("repeat", None))), "repeat_min loosened")
 

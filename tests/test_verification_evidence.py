@@ -138,10 +138,28 @@ class Assessment(unittest.TestCase):
         self.assertEqual((result["loosened"], result["unchanged"], result["withheld"]), (True, True, True))
         self.assertTrue(ve.assess_tolerance(history, "k", {"tol": 1e-3}, [self.A], "  ")["withheld"])   # blank is none
 
-    def test_justification_releases_it_but_it_is_still_flagged_loosened(self):
+    def test_a_sentence_does_not_release_a_loosened_tolerance(self):
         history = [self.failed({"tol": 1e-9}, [self.A])]
         result = ve.assess_tolerance(history, "k", {"tol": 1e-3}, [self.A], "sensor noise floor is 1e-4")
-        self.assertEqual((result["loosened"], result["withheld"]), (True, False))
+        self.assertEqual((result["loosened"], result["withheld"]), (True, True))
+
+    def test_a_matching_approval_releases_it_and_is_still_flagged_loosened(self):
+        previous = self.failed({"tol": 1e-9}, [self.A])
+        previous["_line"] = "ab" * 32
+        approvals = [{"key": "k", "prev": previous["_line"], "old_tolerance": {"tol": 1e-9},
+                      "new_tolerance": {"tol": 1e-3}, "reason": "sensor noise floor is 1e-4"}]
+        result = ve.assess_tolerance([previous], "k", {"tol": 1e-3}, [self.A], "invented by the agent", approvals)
+        self.assertEqual((result["loosened"], result["withheld"], result["approval"]),
+                         (True, False, "sensor noise floor is 1e-4"))
+        wrong = [dict(approvals[0], prev="cd" * 32)]
+        self.assertTrue(ve.assess_tolerance([previous], "k", {"tol": 1e-3}, [self.A], None, wrong)["withheld"])
+
+    def test_dropping_a_numeric_tolerance_key_is_loosening(self):
+        history = [self.failed({"rtol": 1e-9, "atol": 1e-12, "repeat_min": 2}, [self.A])]
+        result = ve.assess_tolerance(history, "k", {"atol": 1e-12, "repeat_min": 2}, [self.A], None)
+        self.assertEqual((result["loosened"], result["dropped_keys"], result["withheld"]), (True, ["rtol"], True))
+        kept = ve.assess_tolerance(history, "k", {"rtol": 1e-12, "atol": 1e-12, "repeat_min": 3}, [self.A], None)
+        self.assertFalse(kept["loosened"])
 
     def test_changed_files_mean_a_fix_not_a_workaround(self):
         history = [self.failed({"tol": 1e-9}, [self.A])]
@@ -262,8 +280,14 @@ class CliHelper(unittest.TestCase):
         (first, second) = ve.read_log(self.dir / ".verification" / "log.jsonl")[0]
         self.assertEqual(sorted((s["path"], s["role"]) for s in first["subjects"]),
                          [("extra.txt", "extra"), ("out.txt", "primary")])
-        self.assertEqual((second["justification"], second["exit_status"]), ("measurement noise", 0))
-        self.assertFalse(summary["withheld"])
+        self.assertEqual((second["justification"], second["exit_status"]), ("measurement noise", 3))
+        self.assertIn("justify_not_an_approval", second["flags"])
+        self.assertTrue(summary["withheld"])
+        approvals = [{"key": "k", "prev": first["_line"], "old_tolerance": {"tol": 1e-12},
+                      "new_tolerance": {"tol": 1.0}, "reason": "measurement noise floor stated by the user"}]
+        released = self.record(self.args(subject=[str(extra)], approvals=approvals), tol=1.0)
+        self.assertFalse(released["withheld"])
+        self.assertEqual(released["exit_status"], 0)
 
     def test_finish_maps_every_outcome_to_one_exit_status(self):
         import contextlib
@@ -345,9 +369,13 @@ class Freshness(unittest.TestCase):
             record, assessment = self.record(passed=True, tolerance={"tol": 1.0})
             self.assertEqual((record["exit_status"], assessment["withheld"]), (3, True))
         self.assertFalse(self.fresh()["fresh_pass"])
-        record, _ = self.record(passed=True, tolerance={"tol": 1.0}, justification="stated accuracy need is 1e-1")
+        failed = ve.read_log(self.log)[0][0]
+        approvals = [{"key": "k", "prev": failed["_line"], "old_tolerance": {"tol": 1e-12},
+                      "new_tolerance": {"tol": 1.0}, "reason": "stated accuracy need is 1e-1"}]
+        record, _ = self.record(passed=True, tolerance={"tol": 1.0}, approvals=approvals)
         self.assertEqual(record["exit_status"], 0)
-        self.assertEqual(self.record(passed=True, tolerance={"tol": 1.0})[0]["exit_status"], 0)   # justified pass is the baseline
+        self.assertEqual(record["justification"], "stated accuracy need is 1e-1")
+        self.assertEqual(self.record(passed=True, tolerance={"tol": 1.0})[0]["exit_status"], 0)   # approved pass is the baseline
 
     def test_subject_records_carry_their_role(self):
         self.assertEqual(ve.subject(str(self.solver), self.dir)["role"], "primary")
@@ -534,9 +562,20 @@ class WithCheckAgainstReference(base.Harness):
     def test_a_justification_releases_the_verdict_and_is_recorded(self):
         self.run_solver(base.KEPLER_FIRST_ORDER)
         done = self.run_solver(base.KEPLER_FIRST_ORDER, "--tol", "1", "--justify", "first-order screening only")
-        self.assertEqual(done.returncode, 0, done.stdout)
+        self.assertEqual(done.returncode, 3, done.stdout)
+        self.assertIn("justify_not_an_approval", self.records()[-1]["flags"])
+        previous = next(r for r in reversed(self.records()) if r.get("exit_status") != 3 and r.get("passed") is False)
+        new_tol = dict(previous["tolerance"])
+        new_tol["tol"] = 1.0
+        reason = "approved relaxation: first-order screening only"
+        (self.log().parent / "tolerance-approvals.json").write_text(json.dumps({
+            "schema": ve.APPROVAL_SCHEMA, "approvals": [{
+                "key": previous["key"], "prev": previous["_line"], "old_tolerance": previous["tolerance"],
+                "new_tolerance": new_tol, "reason": reason}]}))
+        released = self.run_solver(base.KEPLER_FIRST_ORDER, "--tol", "1")
+        self.assertEqual(released.returncode, 0, released.stdout + released.stderr)
         last = self.records()[-1]
-        self.assertEqual(last["justification"], "first-order screening only")
+        self.assertEqual(last["justification"], reason)
         self.assertIn("tolerance_loosened_after_failure", last["flags"])
 
     def test_a_changed_solver_is_a_fix_not_a_workaround(self):
@@ -622,7 +661,14 @@ class WithCheckAgainstReference(base.Harness):
         self.assertEqual((record["kind"], sorted(s["path"] for s in record["subjects"])), ("compare", ["ref.txt", "test.txt"]))
         self.assertEqual(record["tolerance"], {"rtol": 1e-6, "atol": 0.0})
         self.assertEqual(self.run_cli(*args, "--rtol", "1e-2", "--atol", "0").returncode, 3)
-        self.assertEqual(self.run_cli(*args, "--rtol", "1e-2", "--atol", "0", "--justify", "measurement noise 1e-3").returncode, 0)
+        self.assertEqual(self.run_cli(*args, "--rtol", "1e-2", "--atol", "0", "--justify", "measurement noise 1e-3").returncode, 3)
+        previous = next(r for r in reversed(self.records()) if r.get("exit_status") != 3 and r.get("passed") is False)
+        reason = "approved relaxation: measurement noise 1e-3"
+        (self.log().parent / "tolerance-approvals.json").write_text(json.dumps({
+            "schema": ve.APPROVAL_SCHEMA, "approvals": [{
+                "key": previous["key"], "prev": previous["_line"], "old_tolerance": previous["tolerance"],
+                "new_tolerance": {"rtol": 1e-2, "atol": 0.0}, "reason": reason}]}))
+        self.assertEqual(self.run_cli(*args, "--rtol", "1e-2", "--atol", "0").returncode, 0)
         test.write_text("1.0 2.0 3.0005\n")                                         # regenerated output differs: a new run
         self.assertEqual(self.run_cli(*args, "--rtol", "1e-1", "--atol", "0").returncode, 0)
 

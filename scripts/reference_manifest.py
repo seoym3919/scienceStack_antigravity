@@ -138,7 +138,7 @@ def validate(manifest: Any, benchmarks: Dict[str, Any],
             if "repeat_tol" in check and (isinstance(repeat_tol, bool) or not isinstance(repeat_tol, (int, float))
                                           or not math.isfinite(repeat_tol) or repeat_tol < 0):
                 errors.append(f"{where}: repeat_tol must be a finite number >= 0")
-            elif "repeat_tol" in check and check.get("repeat", 1) == 1:
+            elif "repeat_tol" in check and check.get("repeat", 2) == 1:
                 errors.append(f"{where}: repeat_tol has no effect without repeat >= 2")
             if "timeout_s" in check and (isinstance(timeout, bool) or not isinstance(timeout, int) or not 0 <= timeout <= 3600):
                 errors.append(f"{where}: timeout_s must be an integer between 0 and 3600")
@@ -183,9 +183,10 @@ def effective_tolerance(check: Dict[str, Any], benchmarks: Dict[str, Any]) -> Di
     tol = check.get("tol")
     if tol is None:
         tol = benchmarks[check["benchmark"]].default_tol
-    # repeat_min / repeat_tol always count, so dropping a determinism requirement is a loosening like any other. With a
-    # single call nothing is compared, which is the loosest possible repeat_tol: infinity.
-    repeat = int(check.get("repeat", 1))
+    # repeat_min / repeat_tol always count, so dropping a determinism requirement is a loosening like any other.
+    # Omitted repeat matches the checker default (2). An explicit single call compares nothing, which is the loosest
+    # possible repeat_tol: infinity.
+    repeat = int(check.get("repeat", 2))
     effective = {"tol": float(tol), "repeat_min": float(repeat),
                  "repeat_tol": math.inf if repeat == 1 else float(check.get("repeat_tol", 0.0))}
     if getattr(benchmarks[check["benchmark"]], "kind", "single") == "convergence":

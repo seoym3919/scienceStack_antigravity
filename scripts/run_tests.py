@@ -67,7 +67,8 @@ def run_process(cmd: List[str], cwd: Path, timeout_s: int) -> Dict[str, Any]:
     would otherwise run its OLD code while the evidence says it was the NEW file that passed."""
     started = time.monotonic()
     with tempfile.TemporaryDirectory(prefix="run_tests_pyc_") as pycache:
-        env = dict(os.environ, PYTHONPYCACHEPREFIX=pycache)
+        pinned = ve.pin_runtime_env()
+        env = dict(os.environ, PYTHONPYCACHEPREFIX=pycache, **pinned)
         env.pop("PYTHONDONTWRITEBYTECODE", None)
         return _run_group(cmd, cwd, timeout_s, env, started)
 
@@ -205,7 +206,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         detail = {"runner": args.runner, "command": shown,
                   "exit_code": run["exit_code"], "seconds": run["seconds"], "counts": counts,
                   "reason": outcome["reason"], "files_hashed": tree_before[2],
-                  "tree_changed_during_run": tree_after != tree_before[1]}
+                  "tree_changed_during_run": tree_after != tree_before[1],
+                  "runtime": ve.pin_runtime_env()}
         flags = []
         if outcome.get("counts_unavailable"):
             flags.append("counts_unavailable")
