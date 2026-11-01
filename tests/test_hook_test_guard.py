@@ -520,6 +520,7 @@ class AntigravityPayloads(Project):
         out = self.run_agy("edit_file", {"Path": str(self.test_path), "Target": "rtol=1e-9", "Replacement": "rtol=1e-3"})
         self.assertEqual(out["decision"], "force_ask")
         self.assertIn("loosened", out["reason"])
+        self.assertNotIn("hookSpecificOutput", out)               # protojson rejects unknown fields
 
         ok = self.run_agy("edit_file", {"Path": str(self.test_path), "Target": "rtol=1e-9", "Replacement": "rtol=1e-12"})
         self.assertEqual(ok["decision"], "allow")

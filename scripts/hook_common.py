@@ -139,16 +139,13 @@ def run_pre_tool_hook(decide: Callable[[Dict[str, Any]], Optional[Dict[str, str]
                                               "nothing could be checked for this tool call. Approve it only if you "
                                               "have looked at it yourself."}
     if result:
-        decision = "force_ask" if is_antigravity and result["decision"] == "ask" else result["decision"]
-        out = {
-            "decision": decision,
-            "reason": result.get("reason", ""),
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": result["decision"],
-                "permissionDecisionReason": result.get("reason", "")
+        if is_antigravity:
+            out: Dict[str, Any] = {
+                "decision": "force_ask" if result["decision"] == "ask" else result["decision"],
+                "reason": result.get("reason", ""),
             }
-        }
+        else:
+            out = pre_tool_output(result["decision"], result.get("reason", ""))
         print(json.dumps(out))
     elif is_antigravity:
         print(json.dumps({"decision": "allow"}))

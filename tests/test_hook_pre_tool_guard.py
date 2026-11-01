@@ -338,6 +338,7 @@ class SubprocessTests(unittest.TestCase):
         parsed = json.loads(out)
         self.assertEqual(parsed["decision"], "force_ask")         # a plain ask would honour a cached "Always Allow"
         self.assertIn("solve", parsed["reason"])
+        self.assertNotIn("hookSpecificOutput", parsed)            # protojson rejects unknown fields
 
         allow_payload = json.dumps({
             "toolCall": {
