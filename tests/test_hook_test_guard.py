@@ -487,6 +487,7 @@ class ApplyEdit(unittest.TestCase):
     def test_edit_semantics(self):
         self.assertEqual(htg.apply_edit("Write", {"content": "new"}, "old"), "new")
         self.assertEqual(htg.apply_edit("Write", {"content": "new"}, None), "new")
+        self.assertEqual(htg.apply_edit("Write", {"content": "b", "append": True}, "a"), "ab")
         self.assertIsNone(htg.apply_edit("Write", {"content": 5}, "old"))
         self.assertEqual(htg.apply_edit("Edit", {"old_string": "a", "new_string": "b"}, "xay"), "xby")
         self.assertIsNone(htg.apply_edit("Edit", {"old_string": "a", "new_string": "b"}, "aa"))              # not unique
@@ -499,6 +500,47 @@ class ApplyEdit(unittest.TestCase):
                                                                 {"old_string": "q", "new_string": "c"}]}, "a"))
         self.assertIsNone(htg.apply_edit("Read", {}, "a"))
         self.assertIsNone(htg.apply_edit("Edit", {"old_string": 1, "new_string": "b"}, "a"))
+
+
+class AntigravityPayloads(Project):
+    """Antigravity PreToolUse payloads use toolCall {name, args}, conversationId, workspacePaths, and return force_ask/allow."""
+
+    def run_agy(self, name, args):
+        payload = {
+            "toolCall": {"name": name, "args": args},
+            "stepIdx": 4,
+            "conversationId": "c1",
+            "workspacePaths": [str(self.root)],
+        }
+        done = subprocess.run([sys.executable, "-B", str(SCRIPT)], input=json.dumps(payload), capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        return json.loads(done.stdout)
+
+    def test_edit_file_weakening_forces_ask_and_harmless_allows(self):
+        out = self.run_agy("edit_file", {"Path": str(self.test_path), "Target": "rtol=1e-9", "Replacement": "rtol=1e-3"})
+        self.assertEqual(out["decision"], "force_ask")
+        self.assertIn("loosened", out["reason"])
+
+        ok = self.run_agy("edit_file", {"Path": str(self.test_path), "Target": "rtol=1e-9", "Replacement": "rtol=1e-12"})
+        self.assertEqual(ok["decision"], "allow")
+
+    def test_edit_file_replaces_every_occurrence_of_target(self):
+        twice = self.root / "tests" / "test_twice.py"
+        twice.write_text("import numpy as np\n\n\ndef test_a():\n    np.testing.assert_allclose(1, 1, rtol=1e-9)\n"
+                         "    np.testing.assert_allclose(2, 2, rtol=1e-9)\n")
+        out = self.run_agy("edit_file", {"Path": str(twice), "Target": "rtol=1e-9", "Replacement": "rtol=1e-3"})
+        self.assertEqual(out["decision"], "force_ask")
+        self.assertIn("loosened", out["reason"])
+
+    def test_write_file_and_run_command_in_antigravity_format(self):
+        out = self.run_agy("write_file", {"Path": str(self.test_path),
+                                          "Content": TEST_FILE.replace("rtol=1e-9", "rtol=1e-3")})
+        self.assertEqual(out["decision"], "force_ask")
+        self.assertIn("loosened", out["reason"])
+
+        shell_out = self.run_agy("run_command", {"CommandLine": "sed -i 's/1e-9/1e-3/' tests/test_physics.py"})
+        self.assertEqual(shell_out["decision"], "force_ask")
+        self.assertIn("shell command", shell_out["reason"])
 
 
 if __name__ == "__main__":

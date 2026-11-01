@@ -321,6 +321,7 @@ class DocumentationTests(unittest.TestCase):
             docs.append(ROOT / "rules" / "AGENTS.md")
         docs += list((ROOT / "skills").glob("*/SKILL.md")) + list((ROOT / "agents").glob("*.md"))
         docs += list((ROOT / "skills" / "science-mode").glob("*/*.md")) + list((ROOT / "references").glob("*.md"))
+        docs += list((ROOT / "agents" / "references").glob("*.md"))
         cache = {}
         for doc in docs:
             for line in doc.read_text().splitlines():
@@ -349,6 +350,18 @@ class DocumentationTests(unittest.TestCase):
             for ref in re.findall(r"\*\*([a-z][a-z0-9-]+)\*\* (?:skill|principle skill)", text):
                 self.assertIn(ref, shipped, f"{md.name}: unknown skill {ref}")
             self.assertNotRegex(text, r"Opening a PR|grok-|Cursor's", md.name)
+
+    def test_no_stale_claude_plugin_roots_or_prefixes_in_antigravity_docs(self):
+        docs = [ROOT / "README.md", ROOT / "examples" / "reference-checks.workflow.yml"]
+        docs += list((ROOT / "rules").glob("*.md")) + list((ROOT / "skills").rglob("*.md"))
+        docs += list((ROOT / "agents").rglob("*.md"))
+        for doc in docs:
+            text = doc.read_text()
+            self.assertNotIn("CLAUDE_PLUGIN_ROOT", text, str(doc.relative_to(ROOT)))
+            self.assertNotIn("/sciencestack:", text, str(doc.relative_to(ROOT)))
+            self.assertNotIn("sciencestack:science-master", text, str(doc.relative_to(ROOT)))
+            self.assertNotIn("sciencestack:theory-reviewer", text, str(doc.relative_to(ROOT)))
+            self.assertNotIn("seoym3919/scienceStack_claude", text, str(doc.relative_to(ROOT)))
 
 
 class PortabilityTests(unittest.TestCase):

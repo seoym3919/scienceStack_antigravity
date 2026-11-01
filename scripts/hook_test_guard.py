@@ -86,7 +86,9 @@ def apply_edit(tool: str, tool_input: Dict[str, Any], current: Optional[str]) ->
     """The file text after the tool call, or None when it cannot be known (Claude Code will reject such a call itself)."""
     if tool == "Write":
         content = tool_input.get("content")
-        return content if isinstance(content, str) else None
+        if not isinstance(content, str):
+            return None
+        return (current or "") + content if tool_input.get("append") else content
     if current is None:
         return None
     if tool == "Edit":

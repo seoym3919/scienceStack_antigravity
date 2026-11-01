@@ -349,6 +349,30 @@ class SubprocessTests(unittest.TestCase):
         self.assertEqual(code2, 0)
         self.assertEqual(json.loads(out2)["decision"], "allow")
 
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "solver.py"
+            path.write_text("from scipy.linalg import " + "in" + "v as invert\nx = 1\n")
+            edit_payload = json.dumps({
+                "toolCall": {
+                    "name": "edit_file",
+                    "args": {"Path": str(path), "Target": "x = 1", "Replacement": "x = invert(A)"},
+                },
+                "workspacePaths": [tmp],
+            })
+            code3, out3 = run_hook(edit_payload)
+            self.assertEqual(code3, 0)
+            self.assertEqual(json.loads(out3)["decision"], "force_ask")
+
+        cmd_payload = json.dumps({
+            "toolCall": {
+                "name": "run_command",
+                "args": {"CommandLine": "echo 'x = np.linalg." + "in" + "v(A)' > solver.py"},
+            }
+        })
+        code4, out4 = run_hook(cmd_payload)
+        self.assertEqual(code4, 0)
+        self.assertEqual(json.loads(out4)["decision"], "force_ask")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -16,7 +16,7 @@ Scientific computing requires validation against **industry-standard test proble
 
 Executable today, as `run <name>`: `sod`, `robertson`, `cavity-ghia` (lid-driven cavity, Re = 100 and 1000), `beam-timoshenko`, `linear-solve-hilbert`,
 `poisson-2d`, plus Kepler's equation and Lane-Emden, your own manufactured solution with `convergence-user`, and comparison with your own golden data, by
-`scripts/check_against_reference.py` (see `/sciencestack:check-against-reference`): it calls the user's solver, compares with a documented
+`scripts/check_against_reference.py` (see `/check-against-reference`): it calls the user's solver, compares with a documented
 reference at a stated tolerance, and exits non-zero on failure. Use it instead of judging the numbers by eye.
 
 ---

@@ -1,6 +1,6 @@
 ### Bug fix
 
-**You own this task. Plan, review, verify.** Delegate investigation and the fix to subagents (`sciencestack:science-master` for code, `sciencestack:theory-reviewer` for equation/sign/index questions) and stay in the lead.
+**You own this task. Plan, review, verify.** Delegate investigation and the fix to subagents (`science-master` for code, `theory-reviewer` for equation/sign/index questions) and stay in the lead.
 
 Be scientific. Every shipped line traces to runtime evidence. A belt-and-suspenders change that "might help" is a hypothesis, not a fix, and it does not ship. When evidence refutes a hypothesis, revert what it motivated. The smallest change the evidence justifies ships, nothing more.
 

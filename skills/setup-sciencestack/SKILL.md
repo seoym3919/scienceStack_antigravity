@@ -1,6 +1,6 @@
 ---
 name: setup-sciencestack
-description: Configure which Claude model (opus / sonnet / haiku) scienceStack uses per role.
+description: Configure which frontier model (pro / flash / inherit) scienceStack uses per role.
 disable-model-invocation: true
 ---
 

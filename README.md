@@ -25,7 +25,7 @@ Verify installation status:
 ```bash
 agy plugin list
 # - sciencestack (enabled, 0.23.0)
-#   Components: 12 skills, 2 agents, 1 rule, 4 hooks
+#   Components: 12 skills, 2 agents, 2 rules, 1 hook
 ```
 
 ---
@@ -69,7 +69,7 @@ agy plugin list
 python3 scripts/audit_numerical_ast.py path/to/solver.py
 
 # Check solver against canonical reference solutions
-python3 scripts/check_against_reference.py sod --solver euler.py:solve --tol 0.05
+python3 scripts/check_against_reference.py run sod --solver euler.py:solve --tol 0.05
 
 # Run test ratchet check against git baseline
 python3 scripts/test_ratchet.py --baseline-ref origin/main

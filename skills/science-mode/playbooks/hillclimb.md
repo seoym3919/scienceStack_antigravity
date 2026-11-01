@@ -9,7 +9,7 @@ Core discipline: one change, one measurement, keep or revert. Never stack untest
 3. Open a decision log: a `decision.tsv`, one row per attempt: id, hypothesis, change, before, after, delta, tests, verdict (kept or reverted), note. Read it before each attempt. Keep it out of the tree (gitignored).
 4. Ground each hypothesis in the architecture model from step 1, so it names a specific mechanism ("hoist the force-kernel allocation out of the time loop because it dominates the profile"), not "try caching something". For a perf metric, order hypotheses by the performance mantras in step 2 of the Perf issue playbook (`playbooks/perf-issue.md`). Borrow only their order, not that step's stop rule.
 5. Loop, one hypothesis per iteration:
-   - Hand the change to a subagent (`sciencestack:science-master`) with a tight scope. Supervise and review the diff rather than typing it. When several independent hypotheses are live, fan them out to parallel subagents, each in its own git worktree, so they never share mutable state.
+   - Hand the change to a subagent (`science-master`) with a tight scope. Supervise and review the diff rather than typing it. When several independent hypotheses are live, fan them out to parallel subagents, each in its own git worktree, so they never share mutable state.
    - Measure before and after with the frozen harness, and run the regression gate.
    - Accept only when the metric moves past noise and the gate stays green. Otherwise revert the change in full. A tweak that "might help" is not kept.
    - One commit per accepted fix, staging only the files you changed (`git add <files>`, never `-A`). Log the row either way, kept or reverted.

@@ -20,7 +20,7 @@ jobs:
 
       - uses: actions/checkout@v4              # the checker itself
         with:
-          repository: seoym3919/scienceStack_claude    # EDIT: where the plugin lives
+          repository: seoym3919/scienceStack_antigravity    # EDIT: where the plugin lives
           ref: main                                    # EDIT: pin a commit SHA or tag, not a branch
           token: ${{ secrets.PLUGIN_REPO_TOKEN }}      # EDIT: needed only while that repository is private
           path: .scienceStack

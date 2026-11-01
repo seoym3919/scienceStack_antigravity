@@ -4,12 +4,12 @@ description: Check that changes did not weaken the project's tests compared with
 argument-hint: "--baseline-ref origin/main [--include 'tests/*.py']"
 ---
 
-# /sciencestack:test-ratchet
+# /test-ratchet
 
 "Do not relax tolerances or change reference results to make tests pass." This script enforces it mechanically:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/test_ratchet.py" --baseline-ref origin/main      # or HEAD for uncommitted work
+python3 ~/.gemini/config/plugins/sciencestack/scripts/test_ratchet.py --baseline-ref origin/main      # or HEAD for uncommitted work
 ```
 
 Both versions of each test file (`test_*.py`, `*_test.py`, `conftest.py`) are parsed with `ast` and compared test by

@@ -68,9 +68,22 @@ def normalize_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
         raw_name = call.get("name", "")
         args = call.get("args", {}) or {}
         if raw_name == "write_file":
-            out.update({"tool_name": "Write", "tool_input": {"file_path": str(args.get("Path", "")), "content": str(args.get("Content", ""))}})
+            tool_input: Dict[str, Any] = {
+                "file_path": str(args.get("Path", "")),
+                "content": str(args.get("Content", "")),
+            }
+            if args.get("Append"):
+                tool_input["append"] = True
+            out.update({"tool_name": "Write", "tool_input": tool_input})
         elif raw_name == "edit_file":
-            out.update({"tool_name": "Edit", "tool_input": {"file_path": str(args.get("Path", "")), "new_string": str(args.get("Replacement", ""))}})
+            tool_input = {
+                "file_path": str(args.get("Path", "")),
+                "new_string": str(args.get("Replacement", "")),
+            }
+            if "Target" in args and args.get("Target") is not None:
+                tool_input["old_string"] = str(args.get("Target", ""))
+                tool_input["replace_all"] = True
+            out.update({"tool_name": "Edit", "tool_input": tool_input})
         elif raw_name == "run_command":
             out.update({"tool_name": "Bash", "tool_input": {"command": str(args.get("CommandLine", ""))}})
     return out

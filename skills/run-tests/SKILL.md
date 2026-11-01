@@ -4,17 +4,17 @@ description: Run the project's tests and record what actually happened (counts f
 argument-hint: "unittest [--start-dir tests] | pytest [-- ARGS] | command -- CMD | fresh"
 ---
 
-# /sciencestack:run-tests
+# /run-tests
 
 Never report a test as passing unless it was run. This script runs the suite, takes the counts from the framework
 itself (unittest's result object, pytest's JUnit XML), and appends the result to `./.verification/log.jsonl`, bound to a
 SHA-256 of the whole git work tree taken before the run.
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/run_tests.py" unittest --start-dir tests
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/run_tests.py" pytest -- -q tests
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/run_tests.py" command -- make check     # exit status only, counts unknown
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/run_tests.py" fresh                     # before saying "tests pass"
+python3 ~/.gemini/config/plugins/sciencestack/scripts/run_tests.py unittest --start-dir tests
+python3 ~/.gemini/config/plugins/sciencestack/scripts/run_tests.py pytest -- -q tests
+python3 ~/.gemini/config/plugins/sciencestack/scripts/run_tests.py command -- make check     # exit status only, counts unknown
+python3 ~/.gemini/config/plugins/sciencestack/scripts/run_tests.py fresh                     # before saying "tests pass"
 ```
 
 ## What counts as passing
@@ -37,4 +37,4 @@ stale at once; fix the tests to write into a temporary directory.
 ## Limits
 
 The log is a local file: anything running as the user can rewrite it. Only a clean CI run is independent. A suite
-that tests the wrong thing still passes: pair this with `/sciencestack:test-ratchet` so the tests cannot quietly get weaker.
+that tests the wrong thing still passes: pair this with `/test-ratchet` so the tests cannot quietly get weaker.

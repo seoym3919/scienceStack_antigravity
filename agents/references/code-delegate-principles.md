@@ -23,7 +23,7 @@ Compact implementation guide for `science-master` worker subagents.
 
 5. **Analytical & Golden Verification**:
    - Write automated unit tests verifying the implementation against closed-form analytical benchmarks or the Method of Manufactured Solutions (MMS) with explicit relative tolerances (`rtol`, `atol`).
-   - Run `python3 scripts/audit_numerical_ast.py <file>` to verify AST compliance before reporting completion.
+   - Run `python3 ~/.gemini/config/plugins/sciencestack/scripts/audit_numerical_ast.py <file>` to verify AST compliance before reporting completion.
 
 6. **Physics-Modular Architecture**:
    - Decouple pure physical laws (equations of state, forces, rate equations, potentials) from numerical time steppers, spatial grids, and simulation loops.

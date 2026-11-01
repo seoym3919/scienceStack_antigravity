@@ -4,16 +4,16 @@ description: Run the user's solver on a canonical problem (Kepler's equation, La
 argument-hint: "<kepler|lane-emden|sod|robertson> --solver FILE.py:func [--tol X] [--repeat 2]  |  convergence-ode|convergence-bvp --order P  |  compare --ref F --test F --rtol R --atol A  |  run-manifest  |  evidence fresh --subject FILE"
 ---
 
-# /sciencestack:check-against-reference
+# /check-against-reference
 
-The script decides. Claude must not judge a solver "validated" by eyeballing numbers: run the check, report its
+The script decides. Do not judge a solver "validated" by eyeballing numbers: run the check, report its
 exit status and errors, and state the tolerance that was used and why.
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_against_reference.py" list                       # contracts, references, rules
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_against_reference.py" run kepler --solver mysolver.py:solve
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_against_reference.py" run sod --solver mysolver.py:solve --tol 0.05 --report sod.md --json sod.json
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_against_reference.py" compare --ref golden.txt --test mine.txt --rtol 1e-9 --atol 1e-12
+python3 ~/.gemini/config/plugins/sciencestack/scripts/check_against_reference.py list                       # contracts, references, rules
+python3 ~/.gemini/config/plugins/sciencestack/scripts/check_against_reference.py run kepler --solver mysolver.py:solve
+python3 ~/.gemini/config/plugins/sciencestack/scripts/check_against_reference.py run sod --solver mysolver.py:solve --tol 0.05 --report sod.md --json sod.json
+python3 ~/.gemini/config/plugins/sciencestack/scripts/check_against_reference.py compare --ref golden.txt --test mine.txt --rtol 1e-9 --atol 1e-12
 ```
 
 The user's solver is imported and called in this process (per-call timeout, `--timeout-s`, default 120 s).
@@ -129,8 +129,8 @@ an id, a **rationale** (why this benchmark, why this tolerance), the benchmark a
 tolerance. Paths are repo-relative.
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_against_reference.py" check-manifest                 # validate only
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/check_against_reference.py" run-manifest --baseline-ref origin/main
+python3 ~/.gemini/config/plugins/sciencestack/scripts/check_against_reference.py check-manifest                 # validate only
+python3 ~/.gemini/config/plugins/sciencestack/scripts/check_against_reference.py run-manifest --baseline-ref origin/main
 ```
 
 `run-manifest` runs each check in a fresh interpreter. With `--baseline-ref` it compares the manifest with the one on that

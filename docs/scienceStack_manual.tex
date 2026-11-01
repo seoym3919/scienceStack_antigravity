@@ -209,7 +209,7 @@ Verify installation status:
 \begin{lstlisting}[language=bash]
 agy plugin list
 # - sciencestack (enabled, 0.23.0)
-#   Components: 12 skills, 2 agents, 1 rule, 4 hooks
+#   Components: 12 skills, 2 agents, 2 rules, 1 hook
 \end{lstlisting}
 
 \section{Skills}
@@ -249,10 +249,10 @@ Directives are defined in \texttt{rules/AGENTS.md}: the core directives (provena
 \section{Where Things Live}
 \begin{lstlisting}[language=bash]
 plugin.json                     Agent Plugins 1.0.0 manifest
-hooks/hooks.json                PreToolUse, PostToolUse, and StopGate hooks
+hooks.json                      PreToolUse, PostToolUse, and Stop hooks
 rules/AGENTS.md                 Antigravity runtime directives
 agents/                         science-master, theory-reviewer
-references/                     compact delegate principles (read by science-master)
+agents/references/              compact delegate principles (read by science-master)
 skills/science-mode/            playbooks/ (6) and principles/ (6)
 skills/                         check-against-reference, run-tests, test-ratchet, ...
 scripts/                        hooks, AST auditor, checker, evidence log, ratchet,
@@ -303,7 +303,7 @@ For a differential operator $\mathcal{L}$, choose a smooth $u_{\mathrm{mms}}$, c
 \midrule
 \texttt{equation-implementation} & Turn a published equation into verified code with LaTeX docstrings, dimension checks, and limit tests. \\
 \texttt{numerical-verification} & Truncation-error order, grid-refinement convergence, conservation stability. \\
-\texttt{perf-issue} & Profile and remove a bottleneck while asserting $L_2$ parity with the previous output. \\
+\texttt{perf-issue} & Profile and remove a bottleneck while asserting elementwise parity with the previous output (default relative tolerance $10^{-12}$, absolute tolerance 0). \\
 \texttt{hillclimb} & Iterate against a quantitative target: one change, one measurement, keep or revert, with a decision log. \\
 \texttt{bug-fix} & Reproduce on a minimal analytic case, find the root cause by evidence, failing test first. \\
 \texttt{refactoring} & Pin behavior with a characterization test, then restructure into stateless physics modules. \\

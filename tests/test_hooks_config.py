@@ -79,5 +79,48 @@ class HooksJson(unittest.TestCase):
                 self.assertRegex(entry["matcher"], r"^[A-Za-z|]+$")   # letters and '|' only: matched as exact names, not a regex
 
 
+class AntigravityHooksJson(unittest.TestCase):
+    """Test the native Antigravity hooks.json at the plugin root."""
+
+    def setUp(self):
+        self.cfg = json.loads((ROOT / "hooks.json").read_text())["numerical-safety-gate"]
+
+    def _script(self, cmd):
+        match = re.search(r"\./scripts/(\w+\.py)", cmd)
+        self.assertIsNotNone(match, cmd)
+        return match.group(1)
+
+    def test_pre_post_and_stop_wiring(self):
+        pre = self.cfg["PreToolUse"]
+        self.assertEqual(len(pre), 1)
+        self.assertEqual(pre[0]["matcher"], "write_file|edit_file|run_command")
+        self.assertEqual([self._script(h["command"]) for h in pre[0]["hooks"]],
+                         ["hook_pre_tool_guard.py", "hook_test_guard.py"])
+
+        post = self.cfg["PostToolUse"]
+        self.assertEqual(len(post), 1)
+        self.assertEqual(post[0]["matcher"], "write_file|edit_file|run_command")
+        self.assertEqual([self._script(h["command"]) for h in post[0]["hooks"]],
+                         ["hook_record_edit.py"])
+
+        stop = self.cfg["Stop"]
+        self.assertEqual(len(stop), 1)
+        self.assertEqual([self._script(h["command"]) for h in stop], ["hook_stop_gate.py"])
+
+    def test_every_script_exists_and_timeouts_are_sane(self):
+        all_handlers = (
+            [h for entry in self.cfg["PreToolUse"] for h in entry["hooks"]]
+            + [h for entry in self.cfg["PostToolUse"] for h in entry["hooks"]]
+            + list(self.cfg["Stop"])
+        )
+        for handler in all_handlers:
+            self.assertIn("timeout", handler)
+            self.assertLessEqual(handler["timeout"], 60)
+            path = ROOT / "scripts" / self._script(handler["command"])
+            self.assertTrue(path.exists(), path)
+            done = subprocess.run([sys.executable, "-B", str(path)], input="", capture_output=True, text=True)
+            self.assertEqual((done.returncode, done.stdout), (0, ""), (path.name, done.stderr))
+
+
 if __name__ == "__main__":
     unittest.main()

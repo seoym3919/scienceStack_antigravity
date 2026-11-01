@@ -11,7 +11,7 @@ Scan and diagnose scientific code for numerical instability, ill-conditioning, a
 ## Run the scanner first
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/scripts/audit_numerical_ast.py" <file_or_dir> --strict
+python3 ~/.gemini/config/plugins/sciencestack/scripts/audit_numerical_ast.py <file_or_dir> --strict
 ```
 
 It flags matrix inversion (error), cancellation patterns, float32, truncated pi and mutable array defaults, and

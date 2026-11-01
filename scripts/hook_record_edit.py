@@ -31,9 +31,14 @@ def remember_after_shell(payload) -> bool:
     session = payload.get("session_id")
     state = hc.load_state(session)
     roots = {Path(text) for text in (state.get("log_heads") or {})}
-    here = hc.project_root(Path(payload.get("cwd") or os.getcwd()))
-    if hc.opted_in(here):
-        roots.add(here.resolve())
+    candidates = [payload.get("cwd") or os.getcwd()]
+    paths = payload.get("workspacePaths")
+    if isinstance(paths, list):
+        candidates.extend(p for p in paths if isinstance(p, str))
+    for candidate in candidates:
+        here = hc.project_root(Path(candidate))
+        if hc.opted_in(here):
+            roots.add(here.resolve())
     changed = [hc.remember_log_head(state, root) for root in sorted(roots)]
     if any(changed):
         hc.save_state(session, state)
