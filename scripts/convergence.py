@@ -2,7 +2,7 @@
 r"""
 convergence.py - canonical problems with exact solutions, and the estimate of a solver's order of convergence.
 
-Used by check_against_reference.py (benchmarks `convergence-ode` and `convergence-bvp`). Standard library only.
+Used by check_against_reference.py (benchmarks `convergence-ode`, `convergence-bvp` and `convergence-user`). Standard library only.
 
 A solver's observed order is estimated from its error e_k at resolutions N, 2N, 4N, ... (the base N is `--steps`):
 
@@ -173,4 +173,90 @@ def bvp_errors(problem: str, answers: Sequence[Any], sizes: Sequence[int]) -> Di
         diffs = [abs(float(answer[i]) - exact(i / n)) for i in range(n + 1)]
         linf.append(max(diffs))
         l2.append(math.sqrt(sum(d * d for d in diffs) / n))                  # sqrt(h * sum e_i^2) with h = 1/n
+    return {"max-norm": linf, "L2-norm": l2}
+
+
+# --------------------------------------------------------------------------------------------------------------
+# The user's own problem: an exact or manufactured solution
+# --------------------------------------------------------------------------------------------------------------
+
+def user_point(point: Any) -> Tuple[float, ...]:
+    """One grid point as a tuple of coordinates."""
+    if hasattr(point, "tolist"):
+        point = point.tolist()
+    coordinates = list(point) if isinstance(point, (list, tuple)) else [point]
+    for value in coordinates:
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            raise ConvergenceFailure(f"grid coordinate {value!r} is not a finite number")
+    return tuple(float(value) for value in coordinates)
+
+
+def user_level(answer: Any, n: int) -> Tuple[List[Tuple[float, ...]], List[float]]:
+    """The (points, values) a solver returned for resolution n."""
+    if not isinstance(answer, (list, tuple)) or len(answer) != 2:
+        raise ConvergenceFailure(f"the solver must return (points, values) for n = {n}")
+    points, values = (a.tolist() if hasattr(a, "tolist") else a for a in answer)
+    if not isinstance(points, (list, tuple)) or not isinstance(values, (list, tuple)) or len(points) != len(values) or not points:
+        raise ConvergenceFailure(f"points and values must be two lists of the same non-zero length for n = {n}")
+    for value in values:
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            raise ConvergenceFailure(f"value {value!r} at n = {n} is not a finite number")
+    return [user_point(p) for p in points], [float(v) for v in values]
+
+
+def user_errors(answers: Sequence[Any], sizes: Sequence[int], exact: Any) -> Tuple[Dict[str, List[float]], float, bool]:
+    """(error series per norm, largest |exact|, whether exact varies at the finest level). The L2 norm is the root mean
+    square, so it needs no assumption about the shape of the grid. `exact` is called as exact(x) or exact(x, y, ...)."""
+    linf: List[float] = []
+    l2: List[float] = []
+    scale = 0.0
+    counts: List[int] = []
+    finest: List[float] = []
+    for answer, n in zip(answers, sizes):
+        points, values = user_level(answer, n)
+        finest = []
+        for point in points:
+            value = exact(*point)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                raise ConvergenceFailure(f"the exact solution at {point} is {value!r}, not a finite number")
+            finest.append(float(value))
+        diffs = [abs(v - e) for v, e in zip(values, finest)]
+        linf.append(max(diffs))
+        l2.append(math.sqrt(math.fsum(d * d for d in diffs) / len(diffs)))
+        scale = max(scale, max(abs(e) for e in finest))
+        counts.append(len(points))
+    if any(counts[k + 1] <= counts[k] for k in range(len(counts) - 1)):
+        raise ValueError(f"the number of grid points must grow with n, got {counts}")
+    return {"max-norm": linf, "L2-norm": l2}, scale, max(finest) > min(finest)
+
+
+# --------------------------------------------------------------------------------------------------------------
+# Poisson on the unit square
+# --------------------------------------------------------------------------------------------------------------
+
+def poisson2d_exact(x: float, y: float) -> float:
+    """u = sin(pi x) sin(pi y), so that -(u_xx + u_yy) = 2 pi^2 u, and u = 0 on the boundary."""
+    return math.sin(math.pi * x) * math.sin(math.pi * y)
+
+
+def poisson2d_errors(answers: Sequence[Any], sizes: Sequence[int]) -> Dict[str, List[float]]:
+    linf: List[float] = []
+    l2: List[float] = []
+    for answer, n in zip(answers, sizes):
+        if hasattr(answer, "tolist"):
+            answer = answer.tolist()
+        if not isinstance(answer, (list, tuple)) or len(answer) != n + 1:
+            raise ConvergenceFailure(f"the solver must return (n + 1) x (n + 1) nodal values for n = {n}")
+        diffs: List[float] = []
+        for i, row in enumerate(answer):
+            if hasattr(row, "tolist"):
+                row = row.tolist()
+            if not isinstance(row, (list, tuple)) or len(row) != n + 1:
+                raise ConvergenceFailure(f"the solver must return (n + 1) x (n + 1) nodal values for n = {n}")
+            for j, value in enumerate(row):
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                    raise ConvergenceFailure(f"nodal value {value!r} is not a finite number")
+                diffs.append(abs(float(value) - poisson2d_exact(i / n, j / n)))
+        linf.append(max(diffs))
+        l2.append(math.sqrt(math.fsum(d * d for d in diffs)) / n)            # sqrt(h^2 sum e_ij^2) with h = 1/n
     return {"max-norm": linf, "L2-norm": l2}

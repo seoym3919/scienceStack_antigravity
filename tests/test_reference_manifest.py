@@ -167,6 +167,66 @@ class Validation(unittest.TestCase):
         self.assertGreaterEqual(len(errors(manifest)), 3)
 
 
+class ExactSolutionInAManifest(unittest.TestCase):
+    CHECK = {"id": "mine", "rationale": "second order against the manufactured solution", "benchmark": "convergence-user",
+             "solver": "src/s.py:solve", "exact": "tests/mms.py:exact_solution", "order": 2}
+
+    def manifest(self, **changes):
+        check = dict(self.CHECK, **changes)
+        return {"schema": rm.SCHEMA, "checks": [{k: v for k, v in check.items() if v is not None}]}
+
+    def test_a_good_check_is_valid(self):
+        self.assertEqual(errors(self.manifest()), [])
+
+    def test_exact_is_required_and_must_be_a_relative_function(self):
+        for exact in (None, "no-colon", "/abs/path.py:f", "../up.py:f"):
+            with self.subTest(exact=exact):
+                self.assertTrue(any("exact must be" in e for e in errors(self.manifest(exact=exact))))
+
+    def test_exact_applies_to_this_benchmark_only(self):
+        self.assertTrue(any("convergence-user' only" in e for e in errors(with_check(0, exact="a.py:f"))))
+
+    def test_pointing_a_check_at_another_solution_is_a_ratchet_violation(self):
+        result = rm.ratchet(self.manifest(exact="tests/easier.py:exact_solution"), self.manifest(), car.BENCHMARKS)
+        self.assertIn("now compares against", result["violations"][0]["problem"])
+
+    def test_it_runs_from_a_manifest(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d)
+            (repo / "src").mkdir()
+            (repo / "tests").mkdir()
+            (repo / "src" / "s.py").write_text(base.FD_1D)
+            (repo / "tests" / "mms.py").write_text("import math\ndef exact_solution(x):\n    return math.sin(math.pi * x)\n")
+            path = repo / "reference-checks.json"
+            path.write_text(json.dumps(self.manifest()))
+            done = subprocess.run([sys.executable, "-B", str(SCRIPT), "run-manifest", "--manifest", str(path)], cwd=repo,
+                                  capture_output=True, text=True, timeout=120)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+
+
+class NormValidation(unittest.TestCase):
+    def compare(self, **inner):
+        return with_check(2, compare=dict({"ref": "a.txt", "test": "b.txt"}, **inner))
+
+    def assert_error(self, manifest, text):
+        self.assertTrue(any(text in e for e in errors(manifest)), errors(manifest))
+
+    def test_a_good_norm_check_is_valid(self):
+        self.assertEqual(errors(self.compare(norm="l1", norm_tol=0.01)), [])
+        self.assertEqual(errors(self.compare(norm="linf", norm_tol=0.01, blocks=3, atol=1e-9)), [])
+        self.assertEqual(errors(self.compare(norm="elementwise", rtol=1e-9, atol=0)), [])
+
+    def test_bad_norm_checks_are_refused(self):
+        self.assert_error(self.compare(norm="l3", norm_tol=0.1), "compare.norm must be")
+        self.assert_error(self.compare(norm="l1"), "norm_tol is required")
+        self.assert_error(self.compare(norm="l1", norm_tol=0), "norm_tol is required")
+        self.assert_error(self.compare(norm="l1", norm_tol=0.1, rtol=1e-3), "with a norm the relative limit")
+        self.assert_error(self.compare(norm="l1", norm_tol=0.1, blocks=0), "blocks must be")
+        self.assert_error(self.compare(norm="l1", norm_tol=0.1, atol=-1), "atol must be")
+        self.assert_error(self.compare(rtol=1e-3, atol=0, blocks=2), "needs compare.norm")
+        self.assert_error(self.compare(rtol=1e-3, atol=0, norm_tol=0.1), "needs compare.norm")
+
+
 class ShippedExamples(unittest.TestCase):
     def test_the_example_manifest_is_valid(self):
         manifest = json.loads((ROOT / "examples" / "reference-checks.example.json").read_text())
@@ -228,6 +288,30 @@ class Ratchet(unittest.TestCase):
         for inner in ({"rtol": 1e-6, "atol": 1e-12}, {"rtol": 1e-9, "atol": 1e-6}):
             current = with_check(2, compare=dict(GOOD["checks"][2]["compare"], **inner))
             self.assertEqual(self.ratchet(current, GOOD)["violations"][0]["id"], "heat-golden", inner)
+
+    def norm_check(self, **inner):
+        base = {"ref": "tests/golden/heat.txt", "test": "build/heat.out", "norm": "l2", "norm_tol": 0.01, "blocks": 3}
+        return with_check(2, compare=dict(base, **inner))
+
+    def test_each_loosening_of_a_norm_is_a_violation(self):
+        baseline = self.norm_check()
+        for inner, text in (({"norm_tol": 0.02}, "norm_tol loosened"), ({"blocks": 1}, "blocks_min loosened"),
+                            ({"norm": "l1"}, "norm_rank_min loosened")):
+            with self.subTest(inner=inner):
+                self.assertIn(text, self.ratchet(self.norm_check(**inner), baseline)["violations"][0]["problem"])
+
+    def test_tightening_a_norm_is_not(self):
+        baseline = self.norm_check()
+        for inner in ({"norm_tol": 0.005}, {"blocks": 6}, {"norm": "linf"}):
+            with self.subTest(inner=inner):
+                self.assertEqual(self.ratchet(self.norm_check(**inner), baseline)["violations"], [])
+
+    def test_replacing_elementwise_by_a_norm_is_a_violation_unless_approved(self):
+        current = self.norm_check()
+        self.assertIn("replaced by a norm", self.ratchet(current, GOOD)["violations"][0]["problem"])
+        current["checks"][2]["approved_relaxation"] = "the new scheme is judged against a reference solution"
+        result = self.ratchet(current, GOOD)
+        self.assertEqual((result["violations"], len(result["approved"])), ([], 1))
 
     def test_swapping_what_a_check_compares_against_is_a_violation(self):
         self.assertTrue(self.ratchet(with_check(0, benchmark="sod", tol=0.5), GOOD)["violations"])

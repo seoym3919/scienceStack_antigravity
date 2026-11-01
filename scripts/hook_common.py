@@ -2,7 +2,7 @@
 r"""
 hook_common.py - what every scienceStack hook script shares. Standard library only.
 
-Claude Code hook protocol (checked against the documentation, Claude Code 2.1.310):
+Claude Code hook protocol, which the scripts use internally (checked against the documentation, Claude Code 2.1.310):
   PreToolUse   stdin {"hook_event_name", "tool_name", "tool_input", "cwd", "session_id", ...};
                stdout {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask"|"deny"|"allow",
                "permissionDecisionReason": ...}}. Several matching hooks run in parallel; deny beats ask beats allow.
@@ -15,8 +15,12 @@ Claude Code hook protocol (checked against the documentation, Claude Code 2.1.31
 
 Fail closed: a script error is turned into an "ask" prompt that shows the error, so a broken hook can never silently let
 an edit through. (hooks.json also sets "onFailure": "block" on the file-edit entries to cover crashes before this code
-runs.) Escape hatch for the person, not for an agent: SCIENCESTACK_HOOKS=off in the environment of Claude Code turns the
-new test/reference hooks into no-ops, and `claude plugin disable sciencestack` turns off everything.
+runs.) Escape hatch for the person, not for an agent: SCIENCESTACK_HOOKS=off in the environment of Antigravity turns the
+hooks into no-ops.
+
+Antigravity sends a different payload (see `agy` hook documentation): toolCall {name, args}, conversationId and
+workspacePaths, and no permission_mode. normalize_payload maps it onto the names above. Its PreToolUse decision "ask"
+honours a cached "Always Allow", so an ask goes out as "force_ask". Its Stop hook continues only on decision "continue".
 
 Opt-in: the test/reference protection and the stop gate act only in a git project that has already started using
 scienceStack verification, i.e. it contains reference-checks.json, test-ratchet-approvals.json or a .verification/
@@ -38,8 +42,38 @@ MARKERS = ("reference-checks.json", "test-ratchet-approvals.json", ".verificatio
 MAX_FINDINGS_SHOWN = 8
 
 
+# Claude Code answers an "ask" by itself in these modes (seen live), so an ask gates nothing there. Antigravity sends no
+# permission_mode, so this applies only to a payload in the Claude shape.
+UNATTENDED_MODES = {"auto", "bypassPermissions"}
+
+
+def unattended(payload: Dict[str, Any]) -> bool:
+    return payload.get("permission_mode") in UNATTENDED_MODES
+
+
 def hooks_disabled() -> bool:
     return os.environ.get("SCIENCESTACK_HOOKS", "").strip().lower() == "off"
+
+
+def normalize_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """A copy of a hook payload in which an Antigravity payload reads like a Claude Code one."""
+    out = dict(payload)
+    if "session_id" not in out and "conversationId" in out:
+        out["session_id"] = out["conversationId"]
+    paths = out.get("workspacePaths")
+    if "cwd" not in out and isinstance(paths, list) and paths and isinstance(paths[0], str):
+        out["cwd"] = paths[0]
+    if "toolCall" in payload:
+        call = payload["toolCall"]
+        raw_name = call.get("name", "")
+        args = call.get("args", {}) or {}
+        if raw_name == "write_file":
+            out.update({"tool_name": "Write", "tool_input": {"file_path": str(args.get("Path", "")), "content": str(args.get("Content", ""))}})
+        elif raw_name == "edit_file":
+            out.update({"tool_name": "Edit", "tool_input": {"file_path": str(args.get("Path", "")), "new_string": str(args.get("Replacement", ""))}})
+        elif raw_name == "run_command":
+            out.update({"tool_name": "Bash", "tool_input": {"command": str(args.get("CommandLine", ""))}})
+    return out
 
 
 def project_root(start: Path) -> Optional[Path]:
@@ -79,31 +113,22 @@ def run_pre_tool_hook(decide: Callable[[Dict[str, Any]], Optional[Dict[str, str]
     raw = sys.stdin.read()
     if not raw.strip():
         return 0
+    is_antigravity = False
     try:
         payload = json.loads(raw)
         if not isinstance(payload, dict):
             raise ValueError("the hook input is not a JSON object")
         is_antigravity = "toolCall" in payload
-        if is_antigravity:
-            tc = payload["toolCall"]
-            raw_name = tc.get("name", "")
-            args = tc.get("args", {}) or {}
-            norm_payload = dict(payload)
-            if raw_name == "write_file":
-                norm_payload.update({"tool_name": "Write", "tool_input": {"file_path": str(args.get("Path", "")), "content": str(args.get("Content", ""))}})
-            elif raw_name == "edit_file":
-                norm_payload.update({"tool_name": "Edit", "tool_input": {"file_path": str(args.get("Path", "")), "new_string": str(args.get("Replacement", ""))}})
-            elif raw_name == "run_command":
-                norm_payload.update({"tool_name": "Bash", "tool_input": {"command": str(args.get("CommandLine", ""))}})
-            payload = norm_payload
+        payload = normalize_payload(payload)
         result = decide(payload)
     except Exception as exc:                                       # fail closed
         result = {"decision": "ask", "reason": f"[scienceStack {name}] the hook itself failed ({type(exc).__name__}: {exc}); "
                                               "nothing could be checked for this tool call. Approve it only if you "
                                               "have looked at it yourself."}
     if result:
+        decision = "force_ask" if is_antigravity and result["decision"] == "ask" else result["decision"]
         out = {
-            "decision": result["decision"],
+            "decision": decision,
             "reason": result.get("reason", ""),
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
@@ -159,6 +184,52 @@ def save_state(session_id: Any, state: Dict[str, Any]) -> None:
                 old.unlink()
         except OSError:
             pass
+
+
+def evidence_log(root: Path) -> Path:
+    """The evidence log of a project, as the stop gate reads it."""
+    directory = os.environ.get("VERIFICATION_EVIDENCE_DIR")
+    return Path(directory) / "log.jsonl" if directory else root / ".verification" / "log.jsonl"
+
+
+def _line_hashes(log: Path) -> list:
+    try:
+        return [hashlib.sha256(raw).hexdigest() for raw in log.read_bytes().split(b"\n") if raw.strip()]
+    except OSError:
+        return []
+
+
+def log_tail_problem(state: Dict[str, Any], root: Path) -> Optional[str]:
+    """Why the log no longer holds what this session saw, or None.
+
+    The hash chain of verification_evidence.py looks backwards, so dropping the newest lines leaves a valid log. The
+    session's memory of the newest line it saw covers that hole. Same design as fortranBridge's claim_guard.py."""
+    head = (state.get("log_heads") or {}).get(str(root))
+    if not head:
+        return None
+    log = evidence_log(root)
+    hashes = _line_hashes(log)
+    if len(hashes) >= head["records"] and head["last"] in hashes:
+        return None
+    return (f"the evidence log {log} shrank or its tail was rewritten since this session saw it ({head['records']} records -> "
+            f"{len(hashes)}); the local log is not evidence any more: re-run the checks")
+
+
+def remember_log_head(state: Dict[str, Any], root: Path, *, rebase: bool = False) -> bool:
+    """Remember the newest log line. A log that shrank keeps the old head until the stop gate has reported it (rebase=True).
+    Returns True if the state changed."""
+    if log_tail_problem(state, root) and not rebase:
+        return False
+    hashes = _line_hashes(evidence_log(root))
+    heads = state.setdefault("log_heads", {})
+    new = {"records": len(hashes), "last": hashes[-1]} if hashes else None
+    if heads.get(str(root)) == new or (new is None and str(root) not in heads):
+        return False
+    if new is None:
+        del heads[str(root)]
+    else:
+        heads[str(root)] = new
+    return True
 
 
 def counts_as_edit(rel: str) -> bool:

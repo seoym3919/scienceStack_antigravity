@@ -6,3 +6,4 @@ node_modules/
 *.toc
 .pytest_cache/
 __pycache__/
+.verification/

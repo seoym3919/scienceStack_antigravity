@@ -52,6 +52,21 @@ class AuditorTests(unittest.TestCase):
         self.assertIn("BAN_MATRIX_INV", self.codes("import scipy.linalg as la\nx = la.inv(A)\n"))
         self.assertIn("BAN_MATRIX_INV", self.codes("import torch\nx = torch.inverse(A)\n"))
 
+    def test_other_forms_of_inversion_are_errors(self):
+        self.assertIn("BAN_MATRIX_INV", self.codes("import numpy as np\nx = np.linalg.matrix_power(A, -1) @ b\n"))
+        self.assertIn("BAN_MATRIX_INV", self.codes("import numpy as np\nA = np.matrix(d)\nx = A.I * b\n"))
+
+    def test_look_alikes_of_those_forms_are_not(self):
+        self.assertNotIn("BAN_MATRIX_INV", self.codes("import numpy as np\nx = np.linalg.matrix_power(A, 2)\n"))
+        self.assertNotIn("BAN_MATRIX_INV", self.codes("x = circuit.I * R\n"))
+        self.assertNotIn("BAN_MATRIX_INV", self.codes("import numpy as np\nx = np.linalg.pinv(A) @ b\n"))
+
+    def test_a_marked_inversion_is_listed_but_is_no_error(self):
+        source = "import numpy as np\nC = np.linalg.inv(J.T @ J)  # sciencestack: inverse-is-the-result\n"
+        rc, issues = self.audit(source)
+        self.assertEqual(rc, 0)
+        self.assertEqual([(i["level"], i["code"]) for i in issues], [("INFO", "ALLOWED_MATRIX_INV")])
+
     def test_solve_is_clean(self):
         rc, issues = self.audit("import numpy as np\nx = np.linalg.solve(A, b)\n")
         self.assertEqual((rc, issues), (0, []))
@@ -127,6 +142,64 @@ class GeneratorTests(unittest.TestCase):
             plus, minus = f(y0 + dy, x0 + dx), f(y0 - dy, x0 - dx)
             for i in range(2):
                 self.assertAlmostEqual(got[i][j], (plus[i] - minus[i]) / (2 * h), delta=1e-7)   # O(h^2) error
+
+    def generate(self, directory, *args):
+        out = Path(directory) / "mms.py"
+        res = run(SCRIPTS / "mms_generator.py", *args, "--output", str(out))
+        return res, out
+
+    def load(self, path):
+        ns = {}
+        exec(compile(path.read_text(), str(path), "exec"), ns)   # noqa: S102 - generated module
+        return ns
+
+    def test_the_generated_module_names_the_command_and_skips_nothing(self):
+        with tempfile.TemporaryDirectory() as d:
+            res, out = self.generate(d, "--exact", "sin(pi*x)*exp(-t)", "--operator", "diff(u, t) - diff(u, x, 2)")
+            self.assertEqual(res.returncode, 0, res.stderr)
+            text = out.read_text()
+        self.assertIn("run convergence-user", text)
+        self.assertIn(f"--exact {out}:exact_solution", text)
+        self.assertIn("run convergence-user", res.stdout)
+        self.assertNotIn("SkipTest", text)
+        self.assertNotIn("def test_", text)
+
+    def test_the_arguments_are_the_coordinates_in_a_stated_order(self):
+        import inspect
+        cases = ((("--exact", "sin(pi*x)*sin(pi*y)", "--operator", "diff(u, x, 2) + diff(u, y, 2)"), ["x", "y"]),
+                 (("--exact", "t*sin(y)*sin(x)", "--operator", "diff(u, t)"), ["x", "y", "t"]),
+                 (("--exact", "t*sin(y)*sin(x)", "--operator", "diff(u, t)", "--vars", "t,x,y"), ["t", "x", "y"]))
+        for args, expected in cases:
+            with self.subTest(args=args), tempfile.TemporaryDirectory() as d:
+                res, out = self.generate(d, *args)
+                self.assertEqual(res.returncode, 0, res.stderr)
+                ns = self.load(out)
+                self.assertEqual(list(inspect.signature(ns["exact_solution"]).parameters), expected)
+                self.assertEqual(list(inspect.signature(ns["source_term"]).parameters), expected)
+
+    def test_a_missing_parameter_or_an_unknown_coordinate_is_refused(self):
+        with tempfile.TemporaryDirectory() as d:
+            res, out = self.generate(d, "--exact", "sin(x)", "--operator", "alpha*diff(u, x, 2)")
+            self.assertNotEqual(res.returncode, 0)
+            self.assertIn("alpha", res.stderr)
+            self.assertFalse(out.exists())
+            res, _ = self.generate(d, "--exact", "sin(x)", "--operator", "diff(u, x)", "--vars", "x,w")
+            self.assertNotEqual(res.returncode, 0)
+
+    def test_a_generated_source_term_drives_a_solver_to_its_order(self):
+        # End to end: -u'' = f with the generated f; the 3-point Laplacian must measure second order against the module.
+        with tempfile.TemporaryDirectory() as d:
+            res, out = self.generate(d, "--exact", "sin(pi*x)", "--operator", "-diff(u, x, 2)")
+            self.assertEqual(res.returncode, 0, res.stderr)
+            solver = Path(d) / "solver.py"
+            solver.write_text("import numpy as np\nfrom mms import source_term\ndef solve(n):\n    h = 1.0 / n\n"
+                              "    x = [i * h for i in range(n + 1)]\n"
+                              "    A = 2.0 * np.eye(n - 1) - np.eye(n - 1, k=1) - np.eye(n - 1, k=-1)\n"
+                              "    b = np.array([source_term(v) * h * h for v in x[1:-1]])\n"
+                              "    return x, [0.0] + list(np.linalg.solve(A, b)) + [0.0]\n")
+            done = run(SCRIPTS / "check_against_reference.py", "run", "convergence-user", "--solver", f"{solver}:solve",
+                       "--exact", f"{out}:exact_solution", "--order", "2", "--no-evidence", cwd=d)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
 
     def test_generated_mms_fixture_has_no_placeholder_assert(self):
         with tempfile.TemporaryDirectory() as d:
@@ -216,6 +289,30 @@ class DocumentedBenchmarkValues(unittest.TestCase):
 
 
 class DocumentationTests(unittest.TestCase):
+    def test_the_manifest_is_this_plugin_and_not_the_one_it_was_forked_from(self):
+        text = (ROOT / "plugin.json").read_text().lower()
+        for stale in ("pstack", "cursor", "unslop", "lauren"):
+            self.assertNotIn(stale, text)
+
+    def test_every_benchmark_is_documented(self):
+        import check_against_reference as car
+        readme = (ROOT / "README.md").read_text()
+        skill = (ROOT / "skills" / "check-against-reference" / "SKILL.md").read_text()
+        for name in car.BENCHMARKS:
+            if name != "kepler" and name != "lane-emden" and name != "sod" and name != "robertson":
+                self.assertIn(f"`{name}", readme, name)
+            self.assertIn(f"`{name}", skill, name)
+
+    def test_the_session_directives_stay_small(self):
+        self.assertLess(len((ROOT / "rules" / "directives.md").read_bytes()), 2500)   # injected into every session
+
+    def test_the_readme_does_not_pin_a_test_count_that_will_go_stale(self):
+        self.assertIsNone(re.search(r"#\s*\d+ tests", (ROOT / "README.md").read_text()))
+
+    def test_the_versions_agree(self):
+        version = json.loads((ROOT / "plugin.json").read_text())["version"]
+        self.assertIn(f"Version {version}", (ROOT / "docs" / "scienceStack_manual.tex").read_text())
+
     def test_documented_flags_exist_for_every_script(self):
         docs = [ROOT / "README.md"]
         if (ROOT / "rules" / "directives.md").exists():

@@ -12,9 +12,20 @@ Scientific computing requires validation against **industry-standard test proble
 
 ---
 
+## Executable check
+
+Executable today, as `run <name>`: `sod`, `robertson`, `cavity-ghia` (lid-driven cavity, Re = 100 and 1000), `beam-timoshenko`, `linear-solve-hilbert`,
+`poisson-2d`, plus Kepler's equation and Lane-Emden, your own manufactured solution with `convergence-user`, and comparison with your own golden data, by
+`scripts/check_against_reference.py` (see `/sciencestack:check-against-reference`): it calls the user's solver, compares with a documented
+reference at a stated tolerance, and exits non-zero on failure. Use it instead of judging the numbers by eye.
+
+---
+
 ## 1. Catalog of Canonical Industry-Standard Benchmarks
 
 Match the problem domain to its classical reference problem:
+
+The catalogue below is wider than what is executable: for the other rows, build the golden data yourself and use `compare`.
 
 | Domain | Canonical Benchmark Problem | Key Observable / Golden Metric |
 | :--- | :--- | :--- |

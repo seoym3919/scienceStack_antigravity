@@ -390,6 +390,28 @@ class Shell(Project):
         self.assertIsNone(self.run_hook(self.payload("Bash", {"command": 5})))
 
 
+class WordsThatContainACommand(Shell):
+    def test_a_name_that_starts_with_rm_is_not_the_rm_command(self):
+        self.assertIsNone(self.bash("grep -n 'rm.ratchet' tests/test_physics.py"))
+        self.assert_ask(self.bash("rm  tests/test_physics.py"), "shell command", "cannot be checked")
+
+
+class EvidenceLogRewrites(Shell):
+    def test_rewriting_the_log_through_a_variable_is_asked_about(self):
+        for command in ("""python3 -c "import pathlib; p = pathlib.Path('.verification/log.jsonl'); p.write_text('')" """,
+                        """python3 -c "L = 'log.jsonl'; open(L, 'w').write('')" """,
+                        """python3 -c "import os; os.remove('.verification/log.jsonl')" """,
+                        "truncate -s 0 .verification/log.jsonl"):
+            with self.subTest(command=command):
+                self.assert_ask(self.bash(command), "evidence log")
+
+    def test_reading_the_log_is_not_a_write(self):
+        for command in ("cat .verification/log.jsonl", """python3 -c "print(open('.verification/log.jsonl').read())" """,
+                        "python3 tool.py --evidence-dir .verification > out.txt"):
+            with self.subTest(command=command):
+                self.assertIsNone(self.bash(command), command)
+
+
 class PermissionModes(Project):
     """Found live: in auto mode Claude Code answers an "ask" itself, so there a finding must be a deny."""
 

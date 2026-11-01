@@ -62,7 +62,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\small\color{secondaryblue}\textsf{\nouppercase{\leftmark}}}
-\fancyhead[R]{\small\color{secondaryblue}\textsf{scienceStack Manual (v0.22.0)}}
+\fancyhead[R]{\small\color{secondaryblue}\textsf{scienceStack Manual (v0.23.0)}}
 \fancyfoot[C]{\thepage}
 \renewcommand{\headrulewidth}{0.5pt}
 
@@ -143,7 +143,7 @@
     {\large \textsf{Operational Manual for the Google Antigravity Plugin}}\\[1.5cm]
     \rule{\linewidth}{1.5pt}\\[0.6cm]
     {\large \textbf{Plugin Specification \& Operational Guide}}\\[0.2cm]
-    {\normalsize Version 0.22.0 --- October 2026}\\[0.6cm]
+    {\normalsize Version 0.23.0}\\[0.6cm]
     \rule{\linewidth}{1.5pt}\\[2.5cm]
     \begin{minipage}{0.48\textwidth}
         \begin{flushleft} \large
@@ -186,6 +186,8 @@ Generated code that satisfies local tests can still be wrong in the ways that ma
     \item \textbf{Analytical limits and manufactured solutions}: solvers are verified against closed-form solutions or the Method of Manufactured Solutions with explicit error norms.
 \end{enumerate}
 
+The key of the plugin is strict verification and validation: a script, not an opinion, decides whether a solver matches a stated reference at a stated tolerance. Canonical problems, measured order of convergence, golden-data comparison, an evidence log bound to file hashes, ratchets that refuse a weakened test, and hooks that hold an agent to all of these.
+
 \newpage
 \pagenumbering{arabic}
 
@@ -206,7 +208,7 @@ agy plugin install /home/seo3919/AI_skills/scienceStack_antigravity
 Verify installation status:
 \begin{lstlisting}[language=bash]
 agy plugin list
-# - sciencestack (enabled, 0.22.0)
+# - sciencestack (enabled, 0.23.0)
 #   Components: 12 skills, 2 agents, 1 rule, 4 hooks
 \end{lstlisting}
 
@@ -216,12 +218,12 @@ Skills can be triggered via interactive slash commands or dynamically by Antigra
     \item \texttt{/science-mode <task>}: master workflow. Selects exactly one of six playbooks and enforces the six principles. User-invoked.
     \item \texttt{/setup-sciencestack}: writes per-role model choices to configuration. User-invoked.
     \item \texttt{astronomy-computing}: Kepler solvers, symplectic N-body dynamics, SO(3) coordinate frames.
-    \item \texttt{accelerated-scientific-computing}: memory layout, SIMD vectorization, and precision guards.
-    \item \texttt{check-against-reference}: runs the user's solver on Kepler's equation, Lane-Emden, the Sod shock tube, or Robertson kinetics, or compares its output with golden data, through \texttt{scripts/check\_against\_reference.py}. The script decides (exit status 0 pass, 1 fail, 2 nothing checked, 3 verdict withheld or manifest weakened); \texttt{convergence-ode} and \texttt{convergence-bvp} measure observed order of convergence; \texttt{--repeat} detects nondeterminism; every run appends to a SHA-256 bound evidence log (\texttt{.verification/log.jsonl}); tolerance loosening after failure on unchanged files is withheld (exit 3) unless justified; \texttt{run-manifest} re-runs committed manifests.
-    \item \texttt{run-tests}: runs unittest or pytest through \texttt{scripts/run\_tests.py}, extracts exact counts from framework internals, fails when nothing ran or everything was skipped, and records results bound to the worktree hash; \texttt{run\_tests.py fresh} confirms whether tests passed on current files.
-    \item \texttt{test-ratchet}: \texttt{scripts/test\_ratchet.py --baseline-ref REF} parses ASTs of test files against a git baseline and exits 3 on unapproved looser tolerance, removed tests, fewer assertions, new skip/xfail, or fewer parametrize cases; approvals go in \texttt{test-ratchet-approvals.json}.
-    \item \texttt{numerical-stability-audit}: audits explicit matrix inversion, cancellation, and unseeded random number generator states via \texttt{scripts/audit\_numerical\_ast.py}.
-    \item \texttt{precision-audit}, \texttt{scientific-equation-verifier}, \texttt{golden-dataset-benchmark}, \texttt{benchmark-checklist}: audit and verification skills loaded on demand.
+    \item \texttt{accelerated-scientific-computing}: memory layout, SIMD vectorization and precision guards.
+    \item \texttt{check-against-reference}: runs the user's solver on Kepler's equation, Lane-Emden, the Sod shock tube, Robertson kinetics, a Timoshenko cantilever, Hilbert linear systems or the Ghia lid-driven cavity, measures order of convergence (including 2-D Poisson and, with \texttt{convergence-user}, the user's own exact or manufactured solution), or compares its output with golden data, through \texttt{scripts/check\_against\_reference.py}. The script decides (exit status 0 pass, 1 fail, 2 nothing checked, 3 verdict withheld or manifest weakened); \texttt{convergence-ode} and \texttt{convergence-bvp} measure the observed order of convergence (errors at $N, 2N, 4N, \dots$, the two finest resolved pairwise orders must reach the claimed \texttt{--order} minus a margin, roundoff-level errors are discarded and too few resolved levels is a failure) against problems with exact solutions; \texttt{--repeat} defaults to 2 and fails if repeated calls differ, including the sign of zero, unless \texttt{--repeat-tol} allows it; every run is appended to a hash-chained evidence log bound to the SHA-256 of the solver; a tolerance loosened after a failure on unchanged files is withheld, and a justification sentence does not release it (release needs \texttt{tolerance-approvals.json}); \texttt{run-manifest} re-runs a committed \texttt{reference-checks.json} and, against a git baseline, refuses removed checks and raised tolerances without an approved reason; benchmarks whose error depends on the solver's discretisation have no default tolerance, so \texttt{--tol} is required, and a tolerance finer than the reference can resolve is refused.
+    \item \texttt{run-tests}: runs unittest or pytest through \texttt{scripts/run\_tests.py}, takes the counts from the framework (not from console text), fails when nothing ran or everything was skipped, and records the result bound to a SHA-256 of every tracked and untracked-not-ignored file; \texttt{run\_tests.py fresh} exits 0 only if the latest run passed on exactly the current files.
+    \item \texttt{test-ratchet}: \texttt{scripts/test\_ratchet.py --baseline-ref REF} parses both versions of every test file and exits 3 on an unapproved looser tolerance (including a library default taking over), removed test, fewer assertions, new skip or xfail, or fewer parametrize cases; approvals with a reason go in \texttt{test-ratchet-approvals.json}.
+    \item \texttt{numerical-stability-audit} also runs \texttt{audit\_numerical\_ast.py}, which warns about draws from an unseeded global random state, generators created without a seed, clock-, process-id- or entropy-derived seeds, and unseedable sources.
+    \item \texttt{numerical-stability-audit}, \texttt{precision-audit}, \texttt{scientific-equation-verifier}, \texttt{golden-dataset-benchmark}, \texttt{benchmark-checklist}: audit and verification skills loaded on demand; each can also be run explicitly.
 \end{itemize}
 
 \section{Runtime Directives}
@@ -253,8 +255,9 @@ agents/                         science-master, theory-reviewer
 references/                     compact delegate principles (read by science-master)
 skills/science-mode/            playbooks/ (6) and principles/ (6)
 skills/                         check-against-reference, run-tests, test-ratchet, ...
-scripts/                        hooks, AST auditor, MMS and Jacobian generators
-benchmarks/                     analytic reference solvers
+scripts/                        hooks, AST auditor, checker, evidence log, ratchet,
+                                MMS and Jacobian generators
+benchmarks/                     reference solvers, Sod tolerance calibration
 tests/                          unit and integration tests
 \end{lstlisting}
 
@@ -311,45 +314,74 @@ For a differential operator $\mathcal{L}$, choose a smooth $u_{\mathrm{mms}}$, c
 \chapter{Safety Hooks and Tools}
 
 \section{PreToolUse Safety Gate}
-\texttt{scripts/hook\_pre\_tool\_guard.py} intercepts tool writes (\texttt{write\_file}, \texttt{edit\_file}, and terminal write invocations) and blocks proposed code that contains three critical hazards:
+\texttt{scripts/hook\_pre\_tool\_guard.py} runs before \texttt{write\_file}, \texttt{edit\_file} and \texttt{run\_command} calls and asks about proposed code that contains one of three hazards (as \texttt{force\_ask}, so a cached ``Always Allow'' does not skip it):
 \begin{enumerate}[itemsep=2pt]
-    \item \textbf{Explicit matrix inversion}: \texttt{numpy.linalg.inv}, \texttt{scipy.linalg.inv}, \texttt{torch.linalg.inv}, \texttt{torch.inverse}, and JAX/CuPy/SciPy-sparse equivalents. Names are resolved through AST import aliases.
-    \item \textbf{Truncated $\pi$}: literal values \texttt{3.14159} and \texttt{3.1416}.
+    \item \textbf{Explicit matrix inversion}: \texttt{numpy.linalg.inv}, \texttt{scipy.linalg.inv}, \texttt{torch.linalg.inv}, \texttt{torch.inverse}, and the JAX/CuPy/SciPy-sparse equivalents. Names are resolved through imports, so \texttt{import scipy.linalg as la; la.inv(A)} and \texttt{from numpy.linalg import inv; inv(A)} are caught, while an unrelated function called \texttt{inv} is not.
+    \item \textbf{Truncated $\pi$}: the literals \texttt{3.14159} and \texttt{3.1416}, outside tests.
     \item \textbf{Mutable NumPy default argument}: \texttt{def f(x=np.zeros(3))}.
 \end{enumerate}
-Comments, docstrings, and strings are parsed away by the AST and never trigger the gate.
+Comments, docstrings and strings are parsed away by the AST and never trigger the gate. For an \texttt{edit\_file}, the imports of the file already on disk are used. Text that does not parse (a partial snippet) falls back to a conservative pattern match on comment-stripped text. \texttt{run\_command} is checked best-effort: only when the command both writes to a scientific source file and contains an inversion call. The hook fails open on any internal error. Files named \texttt{hook\_pre\_tool\_guard}, \texttt{audit\_numerical\_ast} or \texttt{inversion\_detect} may name the patterns on purpose.
 
-\section{Building Both Sides of a Comparison}
-A manifest \texttt{compare} check can produce its reference and/or its test output by running programs instead of trusting committed files: \texttt{ref\_from} and \texttt{test\_from} give argument lists (never a raw shell), the output (\texttt{stdout} or file path), and \texttt{pinned}, the SHA-256 of every source and input file. A changed pinned file fails the check before anything runs. For \texttt{ref\_from}, the committed reference must reproduce the rebuilt numbers within \texttt{reproduce\_rtol} and \texttt{reproduce\_atol}.
+Where the inverse itself is the result, a line ending in the comment \texttt{\# sciencestack: inverse-is-the-result} passes, and the auditor lists it as \texttt{ALLOWED\_MATRIX\_INV}. A negative \texttt{matrix\_power} and \texttt{.I} of a \texttt{numpy.matrix} count as inversion; \texttt{pinv} does not. The parsed checks and the auditor apply to Python only: other languages get a regular expression in the gate and nothing in the auditor.
 
-\section{Verification Hooks}
-In a git project that uses scienceStack verification (contains \texttt{reference-checks.json}, \texttt{test-ratchet-approvals.json}, or \texttt{.verification/}):
-\begin{itemize}[itemsep=2pt]
-    \item \texttt{scripts/hook\_test\_guard.py} (PreToolUse): Compares proposed edits against baseline ASTs and denies/asks if a test is weakened (looser tolerance, removed test/assertion, new skip/xfail, fewer parametrizations).
-    \item \texttt{scripts/hook\_record\_edit.py} (PostToolUse): Records files modified during the active session.
-    \item \texttt{scripts/hook\_stop\_gate.py} (StopGate): Blocks completion once if edited solvers or compared outputs lack fresh passing checks, recorded tests are stale, or edited tests lack fresh ratchet runs.
-\end{itemize}
-Hooks fail closed: internal crashes or unexpected formats deny modifications until addressed. Set \texttt{SCIENCESTACK\_HOOKS=off} in the environment to temporarily bypass verification hooks.
+\section{Norms, order on your own problem, and what a tolerance means}
+\texttt{compare --norm l1|l2|linf --norm-tol X [--blocks N]} judges a relative norm per field, for a new scheme against a reference solution; elementwise comparison stays the rule for ports. \texttt{convergence-user --exact FILE:FUNC --order P} measures the order of the user's solver against the user's exact or manufactured solution, whose file becomes a primary subject of the evidence; \texttt{mms\_generator.py --output} writes that module and prints the command. \texttt{benchmarks/cfd/sod\_calibration.py} prints what a Sod tolerance means: a shock one cell out of place has a relative L1 error between 0.015 and 0.042, so \texttt{--tol 0.05} cannot see it. The withheld-verdict history is per solver file and function: a renamed or copied solver starts a new one, and records from before version 0.23 do not carry over.
+
+\section{Building both sides of a comparison}
+A manifest \texttt{compare} check can produce its reference and/or its test output by running programs instead of trusting committed files: \texttt{ref\_from} and \texttt{test\_from} give argument lists (never a shell, and a step that starts one, or holds a line break, is refused; \texttt{\{work\}} and \texttt{\{repo\}} are substituted; \texttt{LC\_ALL=C}; a timeout per step), the output (\texttt{stdout} or a file in the work directory), and \texttt{pinned}, the SHA-256 of every source and input the numbers come from. A pinned file that changed fails the check before anything runs. For \texttt{ref\_from} the committed reference must reproduce the rebuilt numbers within \texttt{reproduce\_rtol} and \texttt{reproduce\_atol}, stated separately because compilers and flags do not agree bit for bit, and the rebuilt reference is what is compared. \texttt{run-manifest --refresh-reference ID} rewrites the committed reference from its recipe for a person to review. Evidence is bound to the pinned files, and the ratchet treats a changed recipe as a changed reference. The steps are commands run with the caller's privileges: run only a manifest you trust, and do not run it in CI for pull requests from untrusted forks.
+
+\section{Verification hooks}
+In a git project that already uses scienceStack verification (it contains \texttt{reference-checks.json}, \texttt{test-ratchet-approvals.json} or a \texttt{.verification/} directory) more hooks act; elsewhere they do nothing. \texttt{scripts/hook\_test\_guard.py} (PreToolUse) compares a test file as it would be after an \texttt{edit\_file}, \texttt{write\_file} with the file now, using the same comparison as \texttt{test\_ratchet.py}, and asks the person if a test would be weakened (the reason names the way forward: make the change yourself, record an exception in the approvals file, or set \texttt{SCIENCESTACK\_HOOKS=off}; a missing or unknown \texttt{permission\_mode} keeps the ask); it also asks before changes to the manifest that raise a tolerance, remove a check or add an \texttt{approved\_relaxation}, to the approvals file, to golden files named in the manifest and to \texttt{.verification/}, and, best effort, before a shell command that writes to such a file. \texttt{scripts/hook\_record\_edit.py} (PostToolUse) records the project files this session changed; \texttt{scripts/hook\_stop\_gate.py} (Stop) then checks the evidence log and blocks once if an edited solver or compared output has no fresh passing check, a recorded test run is stale, or edited test files have no fresh ratchet run. It never blocks inside its own continuation (\texttt{stop\_hook\_active}) or while background tasks are pending, and raises each situation once.
+
+Once a script is running, invalid input produces a prompt (or one block) showing the error. The recorder also runs after \texttt{run\_command} and remembers the newest evidence-log line, and the stop gate blocks if a line it saw has gone. \texttt{SCIENCESTACK\_HOOKS=off} in Antigravity's environment is the person's escape hatch for every hook. They cannot see edits made through other programs, and the stop gate cannot see a claim made without an edit; \texttt{test\_ratchet.py} and CI do not depend on hooks.
 
 \begin{warningbox}{Limits}
-The gate cannot see an inversion built dynamically (\texttt{getattr}), \texttt{np.matrix} objects used through \texttt{.I}, or code written by unhooked external processes. It is a safety net, not an absolute formal proof.
+The gate cannot see an inversion built dynamically (\texttt{getattr}), or code written by a program that the agent launches. It is a safety net, not a proof of numerical soundness.
 \end{warningbox}
 
 \section{AST Auditor}
 \texttt{python3 scripts/audit\_numerical\_ast.py <file|dir> [--strict] [--json]} reports:
-\texttt{BAN\_MATRIX\_INV} (error); \texttt{CANCELLATION\_LOG1P}, \texttt{CANCELLATION\_EXPM1}, \texttt{CANCELLATION\_ONE\_MINUS\_COS}, \texttt{PRECISION\_FLOAT32}, \texttt{TRUNCATED\_PI}, \texttt{MUTABLE\_ARRAY\_DEFAULT} (warnings); \texttt{MISSING\_LATEX\_PROVENANCE} (info).
+\texttt{BAN\_MATRIX\_INV} (error); \texttt{CANCELLATION\_LOG1P}, \texttt{CANCELLATION\_EXPM1}, \texttt{CANCELLATION\_ONE\_MINUS\_COS}, \texttt{PRECISION\_FLOAT32}, \texttt{TRUNCATED\_PI}, \texttt{MUTABLE\_ARRAY\_DEFAULT} (warnings); \texttt{MISSING\_LATEX\_PROVENANCE} and \texttt{ALLOWED\_MATRIX\_INV} (info). The exit code is 1 on errors, or on any finding with \texttt{--strict}.
 
 \section{MMS and Jacobian Generators}
 \begin{lstlisting}[language=bash]
 python3 scripts/mms_generator.py --exact "sin(pi*x)*exp(-t)" \
-    --operator "diff(u, t) - alpha*diff(u, x, 2)" --params "alpha=0.1" --output fixture.py
+    --operator "diff(u, t) - alpha*diff(u, x, 2)" --params "alpha=0.1" --output mms.py
 python3 scripts/derive_jacobian.py --vars "x,y" --eqs "x**2 + y, sin(x)*y"
 \end{lstlisting}
 For $u=e^{-t}\sin\pi x$ and $\mathcal L[u]=u_t-\alpha u_{xx}$ the generator derives the forcing
 \[ f(x,t) = (\alpha\pi^2-1)\,e^{-t}\sin\pi x, \]
-and writes a fixture whose convergence test is ready for solver attachment. The Jacobian generator emits \texttt{compute\_jacobian(\_state)} and analytic symbolic entries.
+and writes a module with \texttt{exact\_solution} and \texttt{source\_term}, whose arguments are the coordinates in a stated order (those the expressions use, or \texttt{--vars}). It prints the \texttt{convergence-user} command that measures a solver's order against the module. A parameter with no value is refused. The Jacobian generator emits \texttt{compute\_jacobian(\_state)} and the symbolic entries.
 
 \section{Reference Benchmarks}
+\texttt{scripts/check\_against\_reference.py} calls the user's solver and exits 0 only on a pass; \texttt{list} prints each contract, reference and tolerance rule.
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{p{3.5cm}p{7.3cm}p{3.6cm}}
+\toprule
+\textbf{Check} & \textbf{Reference} & \textbf{Tolerance} \\
+\midrule
+\texttt{kepler} & bisection on Kepler's equation, and its residual & default $10^{-12}$ \\
+\texttt{lane-emden} & closed forms ($n=0,1$); high-accuracy integration ($n=1.5,3$) & required \\
+\texttt{sod} & exact Riemann solution (Toro 2009) & required, relative L1 \\
+\texttt{robertson} & three implicit integrators; $y_1+y_2+y_3=1$ & required \\
+\texttt{beam-timoshenko} & $\delta = PL^3/(3EI) + PL/(\kappa G A)$ & default $10^{-12}$ \\
+\texttt{linear-solve-hilbert} & relative residual on $H_n$, $n=3\dots12$; forward error and exact $\kappa_\infty$ reported, not judged & default $10^{-12}$ \\
+\texttt{cavity-ghia} & Ghia, Ghia \& Shin (1982), Table I, $\mathrm{Re}=100,1000$ & required, at least $10^{-3}$ \\
+\texttt{convergence-ode} & four ODEs with exact solutions & claimed order \\
+\texttt{convergence-bvp} & two 1-D Poisson problems & claimed order \\
+\texttt{poisson-2d} & $u=\sin\pi x\,\sin\pi y$ on the unit square & claimed order \\
+\texttt{convergence-user} & the user's exact or manufactured solution & claimed order \\
+\texttt{compare} & the user's golden data & elementwise, or a norm \\
+\bottomrule
+\end{tabular}
+\caption{Checks a solver can be run against.}
+\end{table}
+
+The Ghia table was taken from two independently kept copies compared by program, not from the paper itself, and it is a $129\times129$ computation rather than an exact solution. In the tests a separate stream-function solver reproduces the $\mathrm{Re}=100$ column to $3.8\times10^{-3}$ on 64 cells; $\mathrm{Re}=1000$ is not re-derived. On the Hilbert matrices at $n=12$, the measured residual was $1.4\times10^{-16}$ through \texttt{solve} and $3.5\times10^{-3}$ through the inverse (NumPy, one platform).
+
+The scripts under \texttt{benchmarks/} are the reference solvers behind these checks and worked examples:
 \begin{table}[h]
 \centering
 \small
@@ -363,16 +395,17 @@ and writes a fixture whose convergence test is ready for solver attachment. The 
 \texttt{astronomy/symplectic\_nbody.py} & bounded energy error, conserved $\mathbf P$, $\mathbf L$ & symplectic structure \\
 \texttt{astronomy/coordinate\_transforms.py} & $R^TR=I$, $\det R=1$ & SO(3) \\
 \texttt{kinetics/robertson\_reference.py} & $y_1+y_2+y_3=1$ & mass conservation \\
+\texttt{cfd/sod\_calibration.py} & relative L1 of a displaced shock and of a first-order scheme & Harten, Lax \& van Leer (1983); Davis (1988) \\
 \bottomrule
 \end{tabular}
-\caption{Benchmarks and what each is checked against.}
+\caption{Reference solvers and what each is checked against.}
 \end{table}
 
 \chapter{Testing}
 \begin{lstlisting}[language=bash]
 pytest tests/
 \end{lstlisting}
-The 594-test suite verifies safety hooks (import aliases, formatting resilience), the AST auditor, MMS and Jacobian generators, reference benchmarks, convergence order calculations, ratchet mechanics, and hash-chained verification evidence ledgers.
+The tests cover the safety hook (including the cases a substring match gets wrong), the AST auditor, the MMS and Jacobian generators (the Jacobian is compared with central finite differences), the reference benchmarks, the evidence log, the ratchets and the hooks, and the consistency of the documentation: every script flag written in a skill, agent or README exists, and no playbook points at a skill that does not ship. Tolerances are stated next to each expectation in the test sources. Reference values are re-derived by independent means (closed forms, sympy, mpmath, a different integrator), and every benchmark is tested with wrong solvers that must fail. \texttt{scripts/run\_tests.py} reports the current count and records it, and \texttt{scripts/test\_ratchet.py} refuses a change that weakens the suite.
 
 \chapter*{Recommended Literature \& References}
 \addcontentsline{toc}{chapter}{Recommended Literature \& References}
@@ -385,6 +418,11 @@ The 594-test suite verifies safety hooks (import aliases, formatting resilience)
     \item Salari, K., \& Knupp, P. (2000). \textit{Code Verification by the Method of Manufactured Solutions}. Sandia National Laboratories, SAND2000-1444.
     \item Toro, E. F. (2009). \textit{Riemann Solvers and Numerical Methods for Fluid Dynamics}, 3rd ed. Springer.
     \item Hairer, E., \& Wanner, G. (1996). \textit{Solving Ordinary Differential Equations II}, 2nd ed. Springer.
+    \item Ghia, U., Ghia, K. N., \& Shin, C. T. (1982). High-Re solutions for incompressible flow using the Navier-Stokes equations and a multigrid method. \textit{J. Comput. Phys.} 48, 387--411.
+    \item Timoshenko, S. P. (1921). On the correction for shear of the differential equation for transverse vibrations of prismatic bars. \textit{Phil. Mag.} 41, 744--746.
+    \item Choi, M.-D. (1983). Tricks or treats with the Hilbert matrix. \textit{Amer. Math. Monthly} 90, 301--312.
+    \item Harten, A., Lax, P. D., \& van Leer, B. (1983). On upstream differencing and Godunov-type schemes for hyperbolic conservation laws. \textit{SIAM Review} 25, 35--61.
+    \item Davis, S. F. (1988). Simplified second-order Godunov-type methods. \textit{SIAM J. Sci. Stat. Comput.} 9, 445--473.
 \end{enumerate}
 
 \end{document}

@@ -24,13 +24,17 @@ import json
 from typing import List, Dict, Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from inversion_detect import import_aliases, is_inversion_call, is_truncated_pi, mutable_array_default  # noqa: E402
+from inversion_detect import (  # noqa: E402
+    import_aliases, is_inversion_call, is_marked, is_matrix_inverse_attribute, is_truncated_pi, marked_lines, mutable_array_default,
+    uses_numpy_matrix,
+)
 from random_detect import find_nondeterminism  # noqa: E402
 
 
 class NumericalASTVisitor(ast.NodeVisitor):
-    def __init__(self, filename: str, tree: ast.AST = None):
+    def __init__(self, filename: str, tree: ast.AST = None, source: str = ""):
         self.filename = filename
+        self.marked = marked_lines(source)
         self.issues: List[Dict[str, Any]] = []
         self.aliases = import_aliases(tree) if tree is not None else {}
 
@@ -48,7 +52,15 @@ class NumericalASTVisitor(ast.NodeVisitor):
     def visit_Call(self, node: ast.Call):
         # 1. Check for np.linalg.inv or scipy.linalg.inv
         is_attr_inv = isinstance(node.func, ast.Attribute) and node.func.attr == "inv"
-        if is_attr_inv or is_inversion_call(node, self.aliases):
+        if (is_attr_inv or is_inversion_call(node, self.aliases)) and is_marked(node, self.marked):
+            self.add_issue(
+                "INFO",
+                node,
+                "ALLOWED_MATRIX_INV",
+                "Explicit matrix inversion marked as the intended result.",
+                "Keep the marker only where the inverse itself is the quantity computed."
+            )
+        elif is_attr_inv or is_inversion_call(node, self.aliases):
             self.add_issue(
                 "ERROR",
                 node,
@@ -160,8 +172,13 @@ def audit_file(path: str) -> List[Dict[str, Any]]:
         with open(path, "r", encoding="utf-8") as f:
             source = f.read()
         tree = ast.parse(source, filename=path)
-        visitor = NumericalASTVisitor(path, tree)
+        visitor = NumericalASTVisitor(path, tree, source)
         visitor.visit(tree)
+        if uses_numpy_matrix(tree, visitor.aliases):
+            for node in ast.walk(tree):
+                if is_matrix_inverse_attribute(node) and not is_marked(node, visitor.marked):
+                    visitor.add_issue("ERROR", node, "BAN_MATRIX_INV", "Explicit matrix inversion ('.I' of a numpy.matrix) detected.",
+                                      "Replace 'A.I * b' with 'np.linalg.solve(A, b)' or 'scipy.linalg.solve' (Cholesky/LU).")
         for finding in find_nondeterminism(tree, visitor.aliases):
             visitor.add_issue("WARNING", finding.node, finding.code, finding.message, finding.suggestion)
         visitor.issues.sort(key=lambda i: (i["line"], i["col"]))

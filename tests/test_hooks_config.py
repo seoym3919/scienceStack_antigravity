@@ -61,7 +61,7 @@ class HooksJson(unittest.TestCase):
     def test_the_recorder_and_the_stop_gate_are_wired_to_the_right_events(self):
         post = entries("PostToolUse")
         self.assertEqual([(e["matcher"], [script_of(c) for c in commands(e)]) for e in post],
-                         [("Write|Edit|MultiEdit", ["hook_record_edit.py"])])
+                         [("Write|Edit|MultiEdit", ["hook_record_edit.py"]), ("Bash", ["hook_record_edit.py"])])
         stop = entries("Stop")
         self.assertEqual([[script_of(c) for c in commands(e)] for e in stop], [["hook_stop_gate.py"]])
         self.assertNotIn("onFailure", stop[0]["hooks"][0])         # it has no effect on Stop; the script handles its own errors

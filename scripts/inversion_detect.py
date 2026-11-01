@@ -8,10 +8,18 @@ default arguments.
 
 Resolves ``import numpy as np`` / ``import scipy.linalg as la`` / ``from numpy.linalg import inv`` so
 that aliases are caught and unrelated functions that happen to be called ``inv`` are not.
+
+matrix_power(A, -k) inverts too. So does ``.I``, but that name means nothing without a type, so it counts only in a file that
+uses numpy.matrix. ``pinv`` is not flagged: it is often the right tool for a rank-deficient or least-squares problem.
+
+Python only. The hook falls back to a regular expression for other languages, and the auditor does not read them at all.
 """
 
 import ast
-from typing import Dict, Optional
+from typing import Dict, Optional, Set
+
+# End a line with this comment when the inverse itself is the result: the hook lets it through and the auditor lists it.
+ALLOW_MARKER = "sciencestack: inverse-is-the-result"
 
 # Fully qualified callables that perform an explicit inversion.
 FORBIDDEN_CALLS = frozenset({
@@ -55,6 +63,17 @@ def dotted(node: ast.AST) -> Optional[str]:
     return None
 
 
+def marked_lines(source: str) -> Set[int]:
+    """Line numbers (1-based) that carry ALLOW_MARKER."""
+    return {number for number, line in enumerate(source.splitlines(), 1) if ALLOW_MARKER in line}
+
+
+def is_marked(node: ast.AST, marked: Set[int]) -> bool:
+    """True if any line of a possibly multi-line call carries the marker."""
+    first = getattr(node, "lineno", 0)
+    return any(number in marked for number in range(first, (getattr(node, "end_lineno", None) or first) + 1))
+
+
 def is_inversion_call(node: ast.AST, aliases: Dict[str, str]) -> bool:
     """True if `node` is a Call that explicitly inverts a matrix."""
     if not isinstance(node, ast.Call):
@@ -66,8 +85,27 @@ def is_inversion_call(node: ast.AST, aliases: Dict[str, str]) -> bool:
     resolved = aliases.get(head, head) + ("." + rest if rest else "")
     if resolved in FORBIDDEN_CALLS:
         return True
+    if resolved == "numpy.linalg.matrix_power" and len(node.args) == 2:
+        power = node.args[1]
+        return isinstance(power, ast.UnaryOp) and isinstance(power.op, ast.USub) and isinstance(power.operand, ast.Constant)
     # Unresolved module alias (e.g. 'jnp' with no visible import) -- still catch '...linalg.inv'.
     return chain.endswith("linalg.inv")
+
+
+def uses_numpy_matrix(tree: ast.AST, aliases: Dict[str, str]) -> bool:
+    """True if the file builds a numpy.matrix, the one type on which ``.I`` is known to be an inverse."""
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            chain = dotted(node.func)
+            if chain:
+                head, _, rest = chain.partition(".")
+                if aliases.get(head, head) + ("." + rest if rest else "") in ("numpy.matrix", "numpy.asmatrix", "numpy.mat"):
+                    return True
+    return False
+
+
+def is_matrix_inverse_attribute(node: ast.AST) -> bool:
+    return isinstance(node, ast.Attribute) and node.attr == "I" and isinstance(node.ctx, ast.Load)
 
 
 # --- truncated pi ---------------------------------------------------------------------------

@@ -10,7 +10,9 @@ such project it reads the shared evidence log (./.verification/log.jsonl, or $VE
      changed since the run;
   B. a recorded test run (run_tests.py) that is no longer a fresh pass although a code file was edited this session;
   C. test files edited this session, in a project that uses test_ratchet.py (a ratchet record or an approvals file exists),
-     without a fresh passing ratchet run since.
+     without a fresh passing ratchet run since;
+  D. an evidence log that lost lines this session saw (see hook_common.log_tail_problem). This one needs no edit: a session
+     that only ran a check and dropped its record is reported too.
 
 It does not read what Claude says: the trigger is the files, so rewording cannot avoid it.
 
@@ -125,12 +127,19 @@ def decide(payload: Dict[str, Any]) -> Dict[str, Any]:
     state = hc.load_state(session)
     edited_by_root = state.get("edited") or {}
     problems: List[str] = []
-    for root_text, edited in sorted(edited_by_root.items()):
+    heads_changed = False
+    for root_text in sorted(set(edited_by_root) | set(state.get("log_heads") or {})):
         root = Path(root_text)
-        if not root.is_dir() or not hc.opted_in(root):
+        tail = hc.log_tail_problem(state, root) if hc.opted_in(root) else None
+        if tail:
+            problems.append(f"{root.name}: {tail}")
+        heads_changed = hc.remember_log_head(state, root, rebase=True) or heads_changed
+        if root_text not in edited_by_root or not root.is_dir() or not hc.opted_in(root):
             continue
-        for finding in findings_for(root, edited):
+        for finding in findings_for(root, edited_by_root[root_text]):
             problems.append(f"{root.name}: {finding}")
+    if heads_changed:
+        hc.save_state(session, state)
     if not problems:
         return {}
     digests = []
@@ -151,6 +160,17 @@ def decide(payload: Dict[str, Any]) -> Dict[str, Any]:
                       "not run and why. This reminder is shown once for this situation."}
 
 
+def antigravity_stop(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Read an Antigravity Stop payload like a Claude Code one. A turn that did not end normally (the person cancelled it,
+    a limit was hit) stops without the gate, as Claude Code does not run the hook when the person interrupts; fullyIdle
+    false means background tasks are still running."""
+    out = hc.normalize_payload(payload)
+    if "conversationId" in payload:
+        out["stop_hook_active"] = payload.get("terminationReason", "NO_TOOL_CALL") != "NO_TOOL_CALL"
+        out["background_tasks"] = payload.get("fullyIdle") is False
+    return out
+
+
 def main() -> int:
     raw = sys.stdin.read()
     if not raw.strip():
@@ -160,7 +180,7 @@ def main() -> int:
         payload = json.loads(raw)
         if not isinstance(payload, dict):
             raise ValueError("the hook input is not a JSON object")
-        result = decide(payload)
+        result = decide(antigravity_stop(payload))
     except Exception as exc:
         # A failure must not look like a pass; but never trap Claude in a continuation it cannot get out of.
         if isinstance(payload, dict) and payload.get("stop_hook_active"):
@@ -168,6 +188,8 @@ def main() -> int:
         result = {"decision": "block",
                   "reason": f"scienceStack stop gate failed ({type(exc).__name__}: {exc}); verification of this session's "
                             "edits could not be checked. Tell the person that, and do not claim the work is verified."}
+    if result and isinstance(payload, dict) and "conversationId" in payload:
+        result = dict(result, decision="continue")                 # Antigravity continues only on this word
     if result:
         print(json.dumps(result))
     return 0

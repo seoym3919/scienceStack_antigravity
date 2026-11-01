@@ -57,9 +57,13 @@ SHELL_WRITES = (
     ("pipes into tee", re.compile(r"\btee\b[^|;&\n]*?" + _Q + _P + r"\b")),
     ("edits in place (sed/perl -i)", re.compile(r"\b(?:sed|perl)\s+-[A-Za-z]*i[^|;&\n]*?" + _Q + _P + r"\b")),
     ("moves or copies onto", re.compile(r"\b(?:mv|cp|install)\b[^|;&\n]*\s" + _Q + _P + _Q + r"\s*(?:$|[;&|)])")),
-    ("removes", re.compile(r"\brm\b[^|;&\n]*?" + _Q + _P + r"\b")),
+    ("removes", re.compile(r"\brm\s[^|;&\n]*?" + _Q + _P + r"\b")),
     ("opens for writing", re.compile(r"open\(\s*" + _Q + _P + _Q + r"\s*,\s*['\"][wax+]")),
     ("writes with pathlib", re.compile(r"Path\(\s*" + _Q + _P + _Q + r"\s*\)\s*\.\s*(?:write_text|write_bytes|unlink)")),
+    # A script often holds the path in a variable, so for the evidence log any mention plus any write counts. Reading it does not.
+    ("rewrites the evidence log", re.compile(r"(?s)^(?=.*(?:\.verification\b|log\.jsonl))"
+                                             r"(?=.*(?:\.write_text\(|\.write_bytes\(|\.unlink\(|\.truncate\(|\btruncate\s|"
+                                             r"os\.remove\(|shutil\.rmtree\(|\bopen\([^)]*,\s*['\"][wax+]))")),
 )
 
 
@@ -276,20 +280,17 @@ def bash_reason(payload: Dict[str, Any]) -> Optional[Dict[str, str]]:
                       "unlike Edit/Write. Approve only if you meant it; test_ratchet.py and CI check the final state."}
 
 
-UNATTENDED_MODES = {"auto", "bypassPermissions"}
-
-
 def decide(payload: Dict[str, Any]) -> Optional[Dict[str, str]]:
     """In default mode a finding is an "ask" for the person. In auto and bypassPermissions modes Claude Code answers an
     "ask" itself (seen live), so it would gate nothing: there the finding is a "deny", and the person acts. A missing or
     unknown permission_mode keeps "ask"."""
     result = _decide(payload)
-    if result and result["decision"] == "ask" and payload.get("permission_mode") in UNATTENDED_MODES:
+    if result and result["decision"] == "ask" and hc.unattended(payload):
         return {"decision": "deny",
                 "reason": result["reason"] + "\n\nBlocked rather than asked because this session runs in "
                           f"{payload['permission_mode']} mode, where nobody is asked. To go ahead: make the change yourself, "
                           f"record an accepted exception with a reason in {APPROVALS}, or have the person set "
-                          "SCIENCESTACK_HOOKS=off for Claude Code."}
+                          "SCIENCESTACK_HOOKS=off for Antigravity."}
     return result
 
 

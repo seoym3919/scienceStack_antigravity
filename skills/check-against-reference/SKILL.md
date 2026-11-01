@@ -31,8 +31,24 @@ Read the solver first; run it only if the user is content for it to run.
 | `convergence-ode` | `integrate(f, y0, t0, t1, n_steps) -> y(t1)` (`f(t, y)` and `y` are lists) | four problems with exact solutions: decay, oscillator, `y' = y^2`, time-dependent `y' = 2ty` | claim `--order P`; margin default 0.25 (`--tol`), smallest 0.05 |
 | `convergence-bvp` | `solve(n, f) -> [u_0 .. u_n]` for `-u'' = f` on (0,1), `u(0)=u(1)=0` | two problems with exact solutions: `sin(pi x)` and `x^3 - x^4` | claim `--order P`; margin as above; max-norm and discrete L2 both judged |
 
+| `poisson-2d` | `solve(n) -> u[i][j]` for `-(u_xx + u_yy) = 2 pi^2 sin(pi x) sin(pi y)` on the unit square, `u = 0` on the boundary | exact `sin(pi x) sin(pi y)` | claim `--order P`; margin as above; max-norm and discrete L2 both judged |
+| `beam-timoshenko` | `solve(L, E, G, I, A, kappa, P) -> delta`, cantilever tip deflection | closed form with the shear term (Timoshenko 1921) | default 1e-12 relative |
+| `linear-solve-hilbert` | `solve(A, b) -> x` for Hilbert matrices, n = 3 ... 12 | relative residual of a backward-stable solve; forward error and exact kappa reported, not judged | default 1e-12 |
+| `cavity-ghia` | `solve(Re) -> {"y", "u"}` on the vertical centreline, Re = 100, 1000 | Ghia, Ghia & Shin (1982), Table I, 17 points | **`--tol` required**, relative L1, at least 1e-3 |
+
+The cavity table is itself a 129 x 129 computation, so agreement much below its own accuracy says little. It was taken from two independently kept copies compared by program, not from the paper. Re = 100 is re-derived in the tests by a separate stream-function solver (3.8e-3 on 64 cells); Re = 1000 rests on the two copies.
+
+`convergence-user` measures the order of your own solver on your own problem: `run convergence-user --solver s.py:solve --exact mms.py:exact_solution --order P`. `solve(n)` returns `(points, values)` on its grid of resolution n (a point is a number, or a tuple in 2-D and up); `exact` is called as `exact(x)` or `exact(x, y, ...)`. `scripts/mms_generator.py --output mms.py` writes such a module with the matching `source_term`, and prints this command. Both norms must reach the claim. The exact solution's file is a primary subject of the evidence. Refused (exit 2), because nothing would be tested: `--exact` naming the solver itself, an exact solution constant on the finest grid, a grid that does not refine. A solver already at roundoff at the coarsest level fails, since that usually means it calls the exact solution.
+
 `compare` checks the user's own golden data: `|test - ref| <= atol + rtol * |ref|`, elementwise; both tolerances are
 required.
+
+`compare --norm l1|l2|linf --norm-tol X [--blocks N]` judges `||test - ref|| / ||ref|| <= X` instead, for a new scheme against
+a reference solution, where a shock moved by one cell fails any elementwise tolerance. `--blocks N` splits the files into N
+equal fields, each judged alone, and the report names the worst. A block whose reference is all zero has no relative error,
+so there the absolute norm must be `<= --atol` (default 0). `--rtol` is refused with a norm: one run gives one verdict.
+Use elementwise for ports, bitwise or at rtol 1e-12. Never use a norm for a port. A larger `--norm-tol`, fewer blocks, a
+blunter norm (linf -> l2 -> l1) or elementwise -> norm after a failure is withheld, and each is a ratchet violation in a manifest.
 
 ## Order of convergence (`convergence-ode`, `convergence-bvp`)
 
@@ -50,6 +66,20 @@ compared with the claim.
 - A larger margin than 0.25 is allowed and marked relaxed. In the evidence the requirement is recorded as the minimum
   observed order (`order_min`) and the number of levels (`levels_min`), so lowering the claim, widening the margin or
   using fewer levels after a failure is withheld like any other loosening.
+
+## What a tolerance means for `sod`
+
+Relative L1 errors, from `python3 benchmarks/cfd/sod_calibration.py`, on the benchmark's 201 points:
+
+| Solution | density | velocity | pressure |
+|---|:---:|:---:|:---:|
+| exact, diaphragm moved by 0.01 | 1.55e-02 | 4.19e-02 | 1.73e-02 |
+| first-order HLL, 100 cells | 2.98e-02 | 5.72e-02 | 2.61e-02 |
+| first-order HLL, 200 cells | 1.91e-02 | 3.25e-02 | 1.57e-02 |
+| first-order HLL, 400 cells | 1.21e-02 | 1.79e-02 | 9.27e-03 |
+| first-order HLL, 800 cells | 7.72e-03 | 1.03e-02 | 5.53e-03 |
+
+So `--tol 0.05` cannot tell a shock one cell out of place from the exact solution. The velocity error is the largest because its reference is zero over much of the domain.
 
 ## Reproducibility (`--repeat`, default 2)
 
@@ -87,6 +117,7 @@ files). Lines are hash-chained, so an edited or removed line is detected by `evi
 - `evidence fresh --subject solver.py` exits 0 only if the latest record for that file is a pass **and the file is
   unchanged since**. Before saying a solver is validated, run it (or run the check again); a stale or missing record is not evidence.
 - **Exit 3, verdict withheld:** the tolerance is looser than in the previous *failed* run of the same check (a larger limit, a smaller `*_min`, or a dropped numeric key) and the primary files did not change. Fix the solver. A `--justify` sentence is recorded and does not release the verdict. Release needs `tolerance-approvals.json` (schema `verification-tolerance-approvals/1`) naming the check key, the SHA-256 of the previous failed log line, the old tolerance, the new tolerance, and a reason of at least 10 characters. A manifest `approved_relaxation` writes that entry from the previous failed log line; it is not a `--justify` sentence. If the solver did change, the run is allowed and only flagged. Repeating the command does not release it, and files named with `--subject` cannot release it. A new `--evidence-dir` starts an empty history; a clean re-run in CI is the gate.
+- The history behind a withheld verdict is per solver file and function, so a second function in the file starts its own. A renamed or copied solver also starts a new history, which is one reason a clean re-run in CI is the gate.
 - If the log cannot be written, a pass becomes exit 2 (a pass without evidence is not a pass); a failure stays 1.
 - Limits: the log is a local file. Anything running as the user can rewrite the whole file, and a truncated tail is not
   detected. Only a clean re-run in CI is an unforgeable gate (next section).
@@ -146,8 +177,7 @@ itself is right.
 
 ## Not covered
 
-The benchmarks above and golden-data comparison. The convergence benchmarks cover time integrators for ODEs and 1-D
-second-order boundary-value problems only: for a PDE solver, a different equation or a multi-dimensional grid, use
-`mms_generator.py` to build a manufactured-solution test, or `compare` with golden data. There is no N-body or
+The benchmarks above and golden-data comparison. For a PDE solver, a different equation or a multi-dimensional grid, use `convergence-user` with `mms_generator.py`, or
+`compare` with golden data. There is no N-body or
 coordinate-transform benchmark, and no check of conservation laws on the user's own code beyond the Robertson mass
 invariant.

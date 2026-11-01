@@ -610,6 +610,259 @@ ODE_SPREAD_BY_LEVEL = ODE_RK4.replace("def integrate", "CALLS = [0]\n\n\ndef int
     "    return y\n", "    CALLS[0] += 1\n    return [v + (0.0 if CALLS[0] % 2 else n * 1e-14) for v in y]\n")   # call 2 differs by n * 1e-14
 
 
+FD_1D = '''
+import math
+import numpy as np
+def exact(x):
+    return math.sin(math.pi * x)
+def constant(x):
+    return 1.0
+def solve(n):
+    h = 1.0 / n
+    x = [i * h for i in range(n + 1)]
+    A = 2.0 * np.eye(n - 1) - np.eye(n - 1, k=1) - np.eye(n - 1, k=-1)
+    b = [math.pi ** 2 * math.sin(math.pi * xi) * h * h for xi in x[1:-1]]
+    return x, [0.0] + list(np.linalg.solve(A, np.array(b))) + [0.0]
+'''
+
+# -lap u = 2 pi^2 sin(pi x) sin(pi y) on the unit square, u = 0 on the boundary: u = sin(pi x) sin(pi y), since each second
+# derivative of u is -pi^2 u. The 5-point Laplacian is second order. SPACING is the power of h on the right-hand side.
+FD_2D = '''
+import math
+import numpy as np
+SPACING = 2
+def exact(x, y):
+    return math.sin(math.pi * x) * math.sin(math.pi * y)
+def solve(n):
+    h = 1.0 / n
+    m = n - 1
+    A = np.zeros((m * m, m * m))
+    b = np.zeros(m * m)
+    for i in range(m):
+        for j in range(m):
+            k = i * m + j
+            A[k, k] = 4.0
+            if i > 0: A[k, k - m] = -1.0
+            if i < m - 1: A[k, k + m] = -1.0
+            if j > 0: A[k, k - 1] = -1.0
+            if j < m - 1: A[k, k + 1] = -1.0
+            b[k] = 2.0 * math.pi ** 2 * exact((i + 1) * h, (j + 1) * h) * h ** SPACING
+    u = np.linalg.solve(A, b)
+    return [((i + 1) * h, (j + 1) * h) for i in range(m) for j in range(m)], u
+'''
+
+
+class ConvergenceUser(Harness):
+    def run_user(self, source, *extra, exact="exact", func="solve", name="solver"):
+        target = self.solver(source, name).rsplit(":", 1)[0]
+        return self.run_cli("run", "convergence-user", "--solver", f"{target}:{func}", "--exact", f"{target}:{exact}", *extra)
+
+    def test_a_second_order_scheme_in_one_dimension(self):
+        self.assertEqual(self.run_user(FD_1D, "--order", "2").returncode, 0)
+
+    def test_a_claim_above_the_real_order_fails(self):
+        done = self.run_user(FD_1D, "--order", "4")
+        self.assertEqual(done.returncode, 1, done.stdout)
+        self.assertIn("below the required", done.stdout)
+
+    def test_a_second_order_scheme_in_two_dimensions(self):
+        self.assertEqual(self.run_user(FD_2D, "--order", "2", "--steps", "4", "--levels", "4").returncode, 0)
+
+    def test_a_scaling_bug_does_not_converge(self):
+        wrong = FD_2D.replace("SPACING = 2", "SPACING = 1")
+        self.assertEqual(self.run_user(wrong, "--order", "2", "--steps", "4", "--levels", "4").returncode, 1)
+
+    def test_a_first_order_boundary_shows_up_in_the_order(self):
+        wrong = FD_1D.replace("[0.0] + list(np.linalg.solve(A, np.array(b))) + [0.0]",
+                              "[h] + list(np.linalg.solve(A, np.array(b))) + [0.0]")
+        self.assertEqual(self.run_user(wrong, "--order", "2").returncode, 1)
+
+    def test_a_solver_that_returns_the_exact_solution_measures_nothing(self):
+        cheat = "import math\ndef exact(x):\n    return math.sin(x)\ndef solve(n):\n    x = [i / n for i in range(n + 1)]\n" \
+                "    return x, [exact(v) for v in x]\n"
+        done = self.run_user(cheat, "--order", "2")
+        self.assertEqual(done.returncode, 1, done.stdout)
+        self.assertIn("already matches", done.stdout)
+
+    def test_a_non_finite_value_and_a_malformed_answer_fail(self):
+        for body in ("return [0.0, 1.0], [float('nan'), 1.0]", "return [0.0, 1.0], [1.0]", "return 3.0"):
+            with self.subTest(body=body):
+                source = f"def exact(x):\n    return x\ndef solve(n):\n    {body}\n"
+                self.assertEqual(self.run_user(source, "--order", "2").returncode, 1)
+
+    def test_what_cannot_be_a_test_is_refused(self):
+        self.assertEqual(self.run_user(FD_1D, "--order", "2", exact="solve").returncode, 2)      # the same function
+        self.assertEqual(self.run_user(FD_1D, "--order", "2", exact="constant").returncode, 2)   # nothing varies
+        same_grid = "def exact(x):\n    return x\ndef solve(n):\n    return [0.0, 1.0], [0.0, 1.0 + 1.0 / n]\n"
+        self.assertEqual(self.run_user(same_grid, "--order", "1").returncode, 2)                 # the grid never refines
+
+    def test_the_arguments_are_checked(self):
+        path = self.solver(FD_1D)
+        self.assertEqual(self.run_cli("run", "convergence-user", "--solver", path, "--order", "2").returncode, 2)
+        self.assertEqual(self.run_user(FD_1D).returncode, 2)                                     # no --order
+        self.assertEqual(self.run_cli("run", "kepler", "--solver", self.solver(KEPLER_GOOD), "--exact", path).returncode, 2)
+
+    def test_the_exact_solution_is_part_of_the_evidence(self):
+        exact_file = self.dir / "manufactured.py"
+        exact_file.write_text("import math\ndef exact(x):\n    return math.sin(math.pi * x)\n")
+        solver = self.solver(FD_1D)
+        self.assertEqual(self.run_cli("run", "convergence-user", "--solver", solver, "--exact", f"{exact_file}:exact",
+                                      "--order", "2").returncode, 0)
+        records, _ = ve.read_log(self.dir / ".verification" / "log.jsonl")
+        self.assertEqual(sorted(Path(s["path"]).name for s in records[-1]["subjects"]), ["manufactured.py", "solver.py"])
+        fresh = ["evidence", "fresh", "--subject", str(exact_file)]
+        self.assertEqual(self.run_cli(*fresh).returncode, 0)
+        exact_file.write_text("import math\ndef exact(x):\n    return math.sin(math.pi * x) + 0.0\n")
+        self.assertEqual(self.run_cli(*fresh).returncode, 1)
+
+    def test_lowering_the_claim_after_a_failure_is_withheld(self):
+        self.assertEqual(self.run_user(FD_1D, "--order", "4").returncode, 1)
+        self.assertEqual(self.run_user(FD_1D, "--order", "2").returncode, 3)
+
+    def test_it_is_listed_with_its_contract(self):
+        listed = json.loads(self.run_cli("list").stdout)
+        entry = next(b for b in listed if b["name"] == "convergence-user")
+        self.assertIn("--exact", entry["parameters"])
+
+
+class CompareNorms(Harness):
+    """Reference values by hand: ref = [1, 2, 3, 4], test = ref + [0, 0, 0, 0.4]. ||e|| / ||ref|| is 0.4/10 = 0.04 in L1,
+    0.4/sqrt(30) in L2 and 0.4/4 = 0.1 in Linf. A step moved by one of 100 points differs in one point of 50."""
+
+    REF, TEST = "1 2 3 4\n", "1 2 3 4.4\n"
+    STEP = "\n".join(["1"] * 50 + ["0"] * 50) + "\n"
+    MOVED = "\n".join(["1"] * 51 + ["0"] * 49) + "\n"
+
+    def write(self, name, text):
+        path = self.dir / name
+        path.write_text(text)
+        return str(path)
+
+    def compare(self, ref, test, *extra):
+        return self.run_cli("compare", "--ref", self.write("ref.txt", ref), "--test", self.write("test.txt", test), *extra)
+
+    def verdict(self, *extra):
+        return self.compare(self.REF, self.TEST, *extra).returncode
+
+    def test_each_norm_has_the_value_derived_by_hand(self):
+        ref, test = [1.0, 2.0, 3.0, 4.0], [1.0, 2.0, 3.0, 4.4]
+        for norm, expected in (("l1", 0.04), ("l2", 0.4 / math.sqrt(30.0)), ("linf", 0.1)):
+            with self.subTest(norm=norm):
+                result = car.compare_values(ref, test, None, 0.0, norm, 1.0, 1)
+                self.assertAlmostEqual(result["block_errors"][0], expected, places=14)
+
+    def test_the_limit_separates_pass_from_fail(self):
+        for norm, value in (("l1", 0.04), ("l2", 0.4 / math.sqrt(30.0)), ("linf", 0.1)):
+            with self.subTest(norm=norm):
+                self.assertEqual(self.verdict("--norm", norm, "--norm-tol", repr(value * 1.01), "--no-evidence"), 0)
+                self.assertEqual(self.verdict("--norm", norm, "--norm-tol", repr(value * 0.99), "--no-evidence"), 1)
+
+    def test_a_moved_step_fails_elementwise_at_any_tolerance_and_is_measured_by_a_norm(self):
+        self.assertEqual(self.compare(self.STEP, self.MOVED, "--rtol", "0.5", "--atol", "0", "--no-evidence").returncode, 1)
+        self.assertEqual(self.compare(self.STEP, self.MOVED, "--norm", "l1", "--norm-tol", "0.05", "--no-evidence").returncode, 0)
+        self.assertEqual(self.compare(self.STEP, self.MOVED, "--norm", "l1", "--norm-tol", "0.01", "--no-evidence").returncode, 1)
+
+    def test_a_block_is_judged_alone_and_the_worst_is_named(self):
+        ref = [1.0] * 4 + [1.0] * 4
+        wrong = [1.0] * 4 + [1.0, 1.0, 1.0, 1.8]
+        whole = car.compare_values(ref, wrong, None, 0.0, "l1", 0.15, 1)
+        self.assertTrue(whole["passed"])                                  # 0.8 / 8 = 0.1 hides it
+        parts = car.compare_values(ref, wrong, None, 0.0, "l1", 0.15, 2)
+        self.assertFalse(parts["passed"])                                 # 0.8 / 4 = 0.2 in the second block
+        self.assertEqual(parts["worst_block"], 1)
+        self.assertEqual(parts["blocks_outside_tolerance"], 1)
+        self.assertAlmostEqual(parts["block_errors"][1], 0.2, places=14)
+
+    def test_blocks_must_divide_the_data(self):
+        result = car.compare_values([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], None, 0.0, "l2", 0.1, 2)
+        self.assertFalse(result["passed"])
+        self.assertIn("equal blocks", result["reason"])
+
+    def test_an_all_zero_reference_block_is_judged_by_atol(self):
+        self.assertEqual(self.compare("0 0\n", "1e-9 0\n", "--norm", "l2", "--norm-tol", "0.1", "--no-evidence").returncode, 1)
+        self.assertEqual(self.compare("0 0\n", "1e-9 0\n", "--norm", "l2", "--norm-tol", "0.1", "--atol", "1e-8",
+                                      "--no-evidence").returncode, 0)
+        self.assertEqual(self.compare("0 0\n", "0 0\n", "--norm", "l2", "--norm-tol", "0.1", "--no-evidence").returncode, 0)
+
+    def test_mismatched_length_and_nan_still_fail(self):
+        self.assertEqual(self.compare("1 2\n", "1\n", "--norm", "l1", "--norm-tol", "1", "--no-evidence").returncode, 1)
+        self.assertEqual(self.compare("1 2\n", "1 nan\n", "--norm", "l1", "--norm-tol", "1", "--no-evidence").returncode, 1)
+
+    def test_one_verdict_per_run(self):
+        for extra in (("--norm", "l1"), ("--norm", "l1", "--norm-tol", "0"), ("--norm", "l1", "--norm-tol", "nan"),
+                      ("--norm", "l1", "--norm-tol", "1", "--rtol", "1e-3"), ("--norm", "l1", "--norm-tol", "1", "--blocks", "0"),
+                      ("--rtol", "1e-3"), ("--atol", "1e-3"), ("--norm-tol", "1", "--rtol", "1", "--atol", "1"),
+                      ("--blocks", "2", "--rtol", "1", "--atol", "1")):
+            with self.subTest(extra=extra):
+                self.assertEqual(self.verdict(*extra, "--no-evidence"), 2)
+
+    def test_a_blunter_measure_after_a_failure_is_withheld(self):
+        self.assertEqual(self.verdict("--rtol", "1e-6", "--atol", "0"), 1)
+        self.assertEqual(self.verdict("--norm", "l1", "--norm-tol", "0.5"), 3)     # elementwise -> norm
+
+    def test_a_loosened_norm_limit_fewer_blocks_and_a_lower_norm_are_each_withheld(self):
+        self.assertEqual(self.verdict("--norm", "linf", "--norm-tol", "0.01", "--blocks", "2"), 1)
+        for extra in (("--norm", "linf", "--norm-tol", "0.5", "--blocks", "2"),
+                      ("--norm", "linf", "--norm-tol", "0.01", "--blocks", "1"),
+                      ("--norm", "l1", "--norm-tol", "0.01", "--blocks", "2")):
+            with self.subTest(extra=extra):
+                first = self.verdict(*extra)
+                self.assertIn(first, (1, 3))
+                self.assertEqual(self.verdict(*extra), 3 if first == 3 else 1)
+        self.assertEqual(self.verdict("--norm", "linf", "--norm-tol", "0.5", "--blocks", "2"), 3)
+
+    def test_the_record_holds_the_limits(self):
+        self.assertEqual(self.verdict("--norm", "l2", "--norm-tol", "0.5", "--blocks", "2"), 0)
+        records, _ = ve.read_log(self.dir / ".verification" / "log.jsonl")
+        self.assertEqual(records[-1]["tolerance"], {"norm_tol": 0.5, "atol": 0.0, "blocks_min": 2.0, "norm_rank_min": 2.0})
+
+
+class WithholdKey(Harness):
+    """The history that withholds a loosened tolerance belongs to one function, not to the file it lives in."""
+
+    SOURCE = """
+import math
+def good(M, e):
+    E = M % (2 * math.pi)
+    for _ in range(100):
+        E -= (E - e * math.sin(E) - M % (2 * math.pi)) / (1 - e * math.cos(E))
+    return E
+def bad(M, e):
+    return M
+"""
+
+    def path(self):
+        path = self.dir / "two.py"
+        path.write_text(self.SOURCE)
+        return path
+
+    def run_one(self, function, tol, *extra):
+        return self.run_cli("run", "kepler", "--solver", f"{self.path()}:{function}", "--tol", tol, *extra).returncode
+
+    def test_a_failure_of_one_function_does_not_withhold_the_other(self):
+        self.assertEqual(self.run_one("bad", "1e-12"), 1)
+        self.assertEqual(self.run_one("good", "1e-10"), 0)
+
+    def test_the_failing_function_itself_is_still_withheld(self):
+        self.assertEqual(self.run_one("bad", "1e-12"), 1)
+        self.assertEqual(self.run_one("bad", "10"), 3)
+        self.assertEqual(self.run_one("bad", "10", "--justify", "a sentence does not release this"), 3)
+
+    def test_a_real_fix_clears_the_history(self):
+        self.assertEqual(self.run_one("bad", "1e-12"), 1)
+        path = self.dir / "two.py"
+        self.SOURCE = self.SOURCE.replace("return M\n", "return good(M, e)\n")
+        path.write_text(self.SOURCE)
+        self.assertEqual(self.run_one("bad", "1e-12"), 0)
+
+    def test_the_record_names_the_function(self):
+        self.assertEqual(self.run_one("good", "1e-12"), 0)
+        records, problems = ve.read_log(self.dir / ".verification" / "log.jsonl")
+        self.assertEqual(problems, [])
+        self.assertEqual(records[-1]["detail"]["function"], "good")
+        self.assertTrue(records[-1]["key"].endswith(":good"))
+
+
 class ConvergenceChecks(unittest.TestCase):
     """The per-problem verdict functions, driven with synthetic answers so each quantity can be asserted exactly."""
 
@@ -1056,7 +1309,9 @@ class UsageAndCompare(Harness):
         done = self.run_cli("list")
         self.assertEqual(done.returncode, 0)
         described = {b["name"]: b for b in json.loads(done.stdout)}
-        self.assertEqual(set(described), {"kepler", "lane-emden", "sod", "robertson", "convergence-ode", "convergence-bvp"})
+        self.assertEqual(set(described), {"kepler", "lane-emden", "sod", "robertson", "convergence-ode", "convergence-bvp",
+                                          "convergence-user", "poisson-2d", "beam-timoshenko", "linear-solve-hilbert",
+                                          "cavity-ghia"})
         self.assertIs(described["kepler"]["tolerance_required"], False)
         for name in ("lane-emden", "sod", "robertson"):
             self.assertIs(described[name]["tolerance_required"], True)

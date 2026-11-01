@@ -190,15 +190,117 @@ class BashTests(unittest.TestCase):
         self.assertIsNone(guard.check(self.bash("echo 'x = 1' > solver.py")))
 
 
+    def test_a_mention_outside_the_written_content_is_not_flagged(self):
+        for command in ("grep -rn 'np.linalg.inv(' src/*.py > hits.txt",
+                        "printf '%s' '{\"content\": \"x = np.linalg.inv(A)\"}' | python3 tool.py src/x.py",
+                        "python3 - <<'E'\nfrom pathlib import Path\nprint(Path('src/x.py').read_text().count('np.linalg.inv('))\nE",
+                        "cat a.txt > solver.py; grep -n 'np.linalg.inv(' solver.py"):
+            with self.subTest(command=command):
+                self.assertIsNone(guard.check(self.bash(command)))
+
+    def test_tee_and_a_heredoc_with_the_file_after_the_marker_are_flagged(self):
+        self.assertIsNotNone(guard.check(self.bash("echo 'np.linalg.inv(A)' | tee solver.py")))
+        self.assertIsNotNone(guard.check(self.bash("cat <<EOF > solver.py\nx = np.linalg.inv(A)\nEOF")))
+
+    def test_the_marker_applies_in_a_heredoc(self):
+        self.assertIsNone(guard.check(self.bash(
+            "cat > solver.py <<'EOF'\nC = np.linalg.inv(J.T @ J)  # sciencestack: inverse-is-the-result\nEOF")))
+
+
+class MarkerTests(unittest.TestCase):
+    MARK = "  # sciencestack: inverse-is-the-result"
+
+    def test_the_marked_line_is_allowed(self):
+        self.assertIsNone(guard.check(write("import numpy as np\nC = np.linalg.inv(J.T @ J)" + self.MARK + "\n")))
+
+    def test_a_marker_on_another_line_does_not_help(self):
+        source = "import numpy as np\nD = 1" + self.MARK + "\nC = np.linalg.inv(J.T @ J)\n"
+        self.assertIn("matrix inversion", guard.check(write(source)))
+
+    def test_a_multi_line_call_may_carry_it_on_any_of_its_lines(self):
+        self.assertIsNone(guard.check(write("import numpy as np\nC = np.linalg.inv(\n    J.T @ J" + self.MARK + "\n)\n")))
+
+    def test_one_marker_does_not_cover_a_second_inversion(self):
+        source = "import numpy as np\nC = np.linalg.inv(A)" + self.MARK + "\nD = np.linalg.inv(B)\n"
+        self.assertIsNotNone(guard.check(write(source)))
+
+    def test_an_unparseable_snippet_honours_it(self):
+        self.assertIsNone(guard.check(write("    C = np.linalg.inv(A)" + self.MARK + "\n  broken(\n")))
+
+    def test_it_does_not_excuse_another_hazard(self):
+        self.assertIn("Truncated pi", guard.check(write("x = 3.14159" + self.MARK + "\n")))
+
+    def test_the_reason_says_how_to_use_it(self):
+        self.assertIn("inverse-is-the-result", guard.check(write("x = np.linalg.inv(A)\n")))
+
+
+class OtherFormsOfInversionTests(unittest.TestCase):
+    def test_a_negative_matrix_power_is_an_inversion(self):
+        for source in ("import numpy as np\nx = np.linalg.matrix_power(A, -1) @ b\n",
+                       "from numpy.linalg import matrix_power as mp\nx = mp(A, -2)\n"):
+            with self.subTest(source=source):
+                self.assertIn("matrix inversion", guard.check(write(source)))
+
+    def test_a_positive_or_unknown_matrix_power_is_not(self):
+        self.assertIsNone(guard.check(write("import numpy as np\nx = np.linalg.matrix_power(A, 3)\n")))
+        self.assertIsNone(guard.check(write("import numpy as np\nx = np.linalg.matrix_power(A, k)\n")))
+
+    def test_dot_I_counts_only_for_a_numpy_matrix(self):
+        self.assertIn("matrix inversion", guard.check(write("import numpy as np\nA = np.matrix(data)\nx = A.I * b\n")))
+        self.assertIsNone(guard.check(write("import numpy as np\nA = np.array(data)\nx = config.I + 1\n")))
+        self.assertIsNone(guard.check(write("x = circuit.I * R\n")))
+
+    def test_the_marker_covers_dot_I(self):
+        source = "import numpy as np\nA = np.matrix(d)\nC = A.I  # sciencestack: inverse-is-the-result\n"
+        self.assertIsNone(guard.check(write(source)))
+
+
+class TestDataTests(unittest.TestCase):
+    def test_pi_is_data_in_a_test(self):
+        for path in ("tests/test_parse.py", "test_parse.py", "src/parse_test.py", "pkg/tests/data.py"):
+            with self.subTest(path=path):
+                self.assertIsNone(guard.check(write("assert parse('3.14159') == 3.14159\n", path=path)))
+
+    def test_pi_is_a_hazard_in_source(self):
+        for path in ("src/parse.py", "contest.py", "latest/x.py"):
+            with self.subTest(path=path):
+                self.assertIn("Truncated pi", guard.check(write("r = 3.14159 * d\n", path=path)))
+
+    def test_an_inversion_in_a_test_is_still_flagged(self):
+        self.assertIn("matrix inversion", guard.check(write("x = np.linalg.inv(A)\n", path="tests/test_a.py")))
+
+    def test_the_reason_says_when_the_language_is_not_parsed(self):
+        self.assertIn("not parsed", guard.check(write("x = np.linalg.inv(A);\n", path="k.rs")))
+        self.assertNotIn("not parsed", guard.check(write("x = np.linalg.inv(A)\n", path="k.py")))
+
+
 class SubprocessTests(unittest.TestCase):
     def test_deny_output_format(self):
-        payload = json.dumps({"tool_name": "Write", "tool_input": {"file_path": "a.py", "content": "np.linalg.inv(A)"}})
+        payload = json.dumps({"tool_name": "Write", "permission_mode": "auto",
+                              "tool_input": {"file_path": "a.py", "content": "np.linalg.inv(A)"}})
         code, out = run_hook(payload)
         self.assertEqual(code, 0)
         decision = json.loads(out)["hookSpecificOutput"]
         self.assertEqual(decision["hookEventName"], "PreToolUse")
         self.assertEqual(decision["permissionDecision"], "deny")
         self.assertIn("solve", decision["permissionDecisionReason"])
+
+    def decision(self, env=None, **extra):
+        payload = {"tool_name": "Write", "tool_input": {"file_path": "a.py", "content": "np.linalg.inv(A)"}, **extra}
+        proc = subprocess.run([sys.executable, str(SCRIPT)], input=json.dumps(payload), capture_output=True, text=True,
+                              env=dict(os.environ, **(env or {})))
+        return json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"] if proc.stdout.strip() else None
+
+    def test_a_person_is_asked_and_nobody_is_denied(self):
+        self.assertEqual(self.decision(), "ask")
+        self.assertEqual(self.decision(permission_mode="default"), "ask")
+        self.assertEqual(self.decision(permission_mode="acceptEdits"), "ask")
+        self.assertEqual(self.decision(permission_mode="auto"), "deny")
+        self.assertEqual(self.decision(permission_mode="bypassPermissions"), "deny")
+
+    def test_the_off_switch_covers_this_gate_too(self):
+        self.assertIsNone(self.decision(env={"SCIENCESTACK_HOOKS": "off"}))
+        self.assertIsNone(self.decision(env={"SCIENCESTACK_HOOKS": "off"}, permission_mode="auto"))
 
     def test_allow_prints_nothing(self):
         payload = json.dumps({"tool_name": "Write", "tool_input": {"file_path": "a.py", "content": "y = 1"}})
@@ -234,7 +336,7 @@ class SubprocessTests(unittest.TestCase):
         code, out = run_hook(deny_payload)
         self.assertEqual(code, 0)
         parsed = json.loads(out)
-        self.assertEqual(parsed["decision"], "deny")
+        self.assertEqual(parsed["decision"], "force_ask")         # a plain ask would honour a cached "Always Allow"
         self.assertIn("solve", parsed["reason"])
 
         allow_payload = json.dumps({

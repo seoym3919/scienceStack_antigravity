@@ -138,6 +138,19 @@ class Validation(Repo):
     def test_a_complete_manifest_is_valid(self):
         self.assertEqual(self.errors(), [])
 
+    def test_a_shell_is_refused_as_a_step(self):
+        for program in ("sh", "bash", "/bin/sh", "/usr/bin/env_is_fine_but_this/zsh", "dash", "fish", "powershell", "pwsh", "cmd.exe",
+                        "C:\\Windows\\System32\\cmd.exe", "BASH"):
+            with self.subTest(program=program):
+                self.assert_error("starts a shell", lambda c, p=program: c["test_from"].update(steps=[[p, "-c", "x"]]))
+        self.assert_error("starts a shell", lambda c: c["ref_from"].update(steps=[["python3", "a.py"], ["sh", "b.sh"]]))
+
+    def test_a_program_that_merely_ends_like_a_shell_is_not_refused(self):
+        self.assertEqual(self.errors(lambda c: c["ref_from"].update(steps=[["{work}/flash", "input.sh"]])), [])
+
+    def test_a_line_break_in_an_argument_is_refused(self):
+        self.assert_error("line break", lambda c: c["test_from"].update(steps=[[PY, "-c", "import os\nos.system('x')"]]))
+
     def test_steps(self):
         for bad in ([], "x", [[]], [[""]], [["a", 1]], ["a"], [["a\0b"]]):
             self.assert_error("steps", lambda c, b=bad: c["ref_from"].update(steps=b))
@@ -568,6 +581,29 @@ class RatchetOfBuiltChecks(Repo):
         result = rm.ratchet(current, baseline, car.BENCHMARKS)
         self.assertEqual(result["violations"], [])
         self.assertEqual(len(result["approved"]), 1)
+
+    def test_a_refused_step_runs_nothing(self):
+        current = self.good_manifest()
+        marker = self.repo / "side-effect"
+        current["checks"][0]["compare"]["test_from"]["steps"] = [["sh", "-c", f"touch {marker}"]]
+        self.write(current)
+        done = self.cli("run-manifest", "--no-evidence")
+        self.assertEqual(done.returncode, 2, done.stdout + done.stderr)
+        self.assertFalse(marker.exists())
+
+    def test_a_rebuilt_comparison_can_be_judged_by_a_norm(self):
+        current = self.good_manifest()
+        inner = current["checks"][0]["compare"]
+        inner.pop("rtol")
+        inner.update(norm="l2", norm_tol=1e-9, atol=0.0)
+        self.write(current)
+        done = self.cli("run-manifest", "--no-evidence")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        (self.repo / "src" / "decay.py").write_text(TRANSLATION_BUG)
+        current["checks"][0]["compare"]["test_from"]["pinned"] = self.pins("src/decay.py")
+        inner["norm_tol"] = 1e-12
+        self.write(current)
+        self.assertEqual(self.cli("run-manifest", "--no-evidence").returncode, 1)
 
     def test_the_effective_tolerance_of_a_compare_check(self):
         effective = rm.effective_tolerance(self.good_manifest()["checks"][0], car.BENCHMARKS)

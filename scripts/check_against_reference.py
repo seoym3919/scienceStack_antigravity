@@ -5,6 +5,7 @@ check_against_reference.py - run YOUR solver on a canonical problem and compare 
     check_against_reference.py list
     check_against_reference.py run BENCHMARK --solver FILE.py:func [--tol X] [--json F] [--report F]
     check_against_reference.py compare --ref FILE --test FILE --rtol R --atol A
+    check_against_reference.py compare --ref FILE --test FILE --norm l1|l2|linf --norm-tol X [--blocks N] [--atol A]
     check_against_reference.py run-manifest [--manifest reference-checks.json] [--baseline-ref GITREF]
     check_against_reference.py check-manifest [--manifest FILE]
     check_against_reference.py evidence verify|show|fresh
@@ -25,6 +26,7 @@ Benchmarks (`list` prints each contract and its reference):
   lane-emden   solver(n) -> {"xi_1", "omega_n"}       reference: closed forms (n=0, 1) and tabulated values
   sod          solver(x, t) -> {"x"?, "density", "velocity", "pressure"}   reference: exact Riemann solution
   robertson    solver(t) -> [y1, y2, y3]              reference: stored values cross-checked by 3 integrators
+  convergence-user  solver(n) -> (points, values)     reference: your exact or manufactured solution (--exact)
 
 Tolerances are part of the verdict and are never chosen silently:
   * a benchmark whose error is set by the solver's own discretisation (lane-emden, sod, robertson) has NO default:
@@ -59,6 +61,7 @@ import verification_evidence as ve  # noqa: E402
 import reference_manifest as rm  # noqa: E402
 import reference_build as rb  # noqa: E402
 import convergence as cv  # noqa: E402
+import engineering_references as er  # noqa: E402
 
 CHECKER_VERSION = "2.0"
 TOOL = "check_against_reference"
@@ -365,6 +368,54 @@ def robertson_check(case: Dict[str, Any], answer: Any, tol: float) -> Tuple[bool
     return all(v <= tol for v in errors.values()), errors, f"y={values!r}"
 
 
+def beam_cases(args) -> List[Dict[str, Any]]:
+    return [{"name": c["name"], "args": (c["L"], c["E"], c["G"], c["I"], c["A"], c["kappa"], c["P"])} for c in er.BEAM_CASES]
+
+
+def beam_check(case: Dict[str, Any], answer: Any, tol: float) -> Tuple[bool, Dict[str, float], str]:
+    delta = as_float(answer, "tip deflection")
+    reference = er.beam_tip_deflection(*case["args"])
+    error = abs(delta - reference) / reference
+    return error <= tol, {"rel_error_delta": error}, f"delta={delta!r} reference={reference!r}"
+
+
+def hilbert_cases(args) -> List[Dict[str, Any]]:
+    cases = []
+    for n in er.HILBERT_SIZES:
+        matrix, truth = er.hilbert(n), er.hilbert_solution(n)
+        right = [math.fsum(a * t for a, t in zip(row, truth)) for row in matrix]
+        cases.append({"name": f"n={n}", "args": ([list(row) for row in matrix], list(right)), "A": matrix, "b": right,
+                      "truth": truth, "n": n})
+    return cases
+
+
+def hilbert_check(case: Dict[str, Any], answer: Any, tol: float) -> Tuple[bool, Dict[str, float], str]:
+    try:
+        x = er.finite_vector(answer, case["n"], "x")
+    except er.ReferenceFailure as exc:
+        raise CaseFailure(str(exc))
+    residual, forward = er.linear_errors(case["A"], case["b"], x, case["truth"])
+    kappa = er.hilbert_condition_inf(case["n"])
+    return (residual <= tol, {"rel_residual": residual},
+            f"forward error {forward:.2e} (not judged), kappa_inf {kappa:.3e}, kappa_inf * eps {kappa * 2.220446049250313e-16:.2e}")
+
+
+def cavity_cases(args) -> List[Dict[str, Any]]:
+    return [{"name": f"Re={re:g}", "args": (re,), "Re": re} for re in sorted(er.GHIA_COLUMN)]
+
+
+def cavity_check(case: Dict[str, Any], answer: Any, tol: float) -> Tuple[bool, Dict[str, float], str]:
+    if not isinstance(answer, dict) or "y" not in answer or "u" not in answer:
+        raise CaseFailure("result must be a dict with 'y' and 'u' along the vertical centreline")
+    try:
+        size = len(answer["y"])
+        y, u = er.finite_vector(answer["y"], size, "y"), er.finite_vector(answer["u"], size, "u")
+        error = er.cavity_error(case["Re"], y, u)
+    except (er.ReferenceFailure, TypeError) as exc:
+        raise CaseFailure(str(exc))
+    return error <= tol, {"rel_L1_u": error}, f"{size} points"
+
+
 def convergence_settings(args, default_steps: int) -> Tuple[float, int, int]:
     """(expected order, base resolution, number of levels) from --order/--steps/--levels, validated."""
     if args.order is None:
@@ -410,6 +461,41 @@ def _verdicts(case: Dict[str, Any], series: Dict[str, List[float]], margin: floa
     if worst is not None:
         errors["observed_order"] = worst
     return passed, errors, "; ".join(notes)
+
+
+def convergence_user_cases(args) -> List[Dict[str, Any]]:
+    order, steps, levels = convergence_settings(args, 8)
+    return [{"name": "exact-solution", "order": order, "exact": args.exact_callable, "sizes": cv.levels(steps, levels),
+             "calls": [(n,) for n in cv.levels(steps, levels)]}]
+
+
+def convergence_user_check(case: Dict[str, Any], answers: Any, margin: float) -> Tuple[bool, Dict[str, float], str]:
+    try:
+        series, scale, varies = cv.user_errors(answers, case["sizes"], case["exact"])
+    except cv.ConvergenceFailure as exc:
+        raise CaseFailure(str(exc))
+    except ValueError as exc:
+        raise UsageError(str(exc))
+    if not varies:
+        raise UsageError("the exact solution is constant on the finest grid, so the check would test nothing")
+    floor = cv.ROUNDOFF_FLOOR * max(1.0, scale)
+    if max(values[0] for values in series.values()) <= floor:
+        raise CaseFailure(f"the solver already matches the exact solution to roundoff at n = {case['sizes'][0]}: either n is too "
+                          "fine, or solve calls the exact solution, so no order can be measured")
+    return _verdicts(case, series, margin, scale)
+
+
+def poisson2d_cases(args) -> List[Dict[str, Any]]:
+    order, steps, levels = convergence_settings(args, 8)
+    return [{"name": "sine-product", "order": order, "sizes": cv.levels(steps, levels), "calls": [(n,) for n in cv.levels(steps, levels)]}]
+
+
+def poisson2d_check(case: Dict[str, Any], answers: Any, margin: float) -> Tuple[bool, Dict[str, float], str]:
+    try:
+        series = cv.poisson2d_errors(answers, case["sizes"])
+    except cv.ConvergenceFailure as exc:
+        raise CaseFailure(str(exc))
+    return _verdicts(case, series, margin, 1.0)
 
 
 def convergence_ode_check(case: Dict[str, Any], answers: Any, margin: float) -> Tuple[bool, Dict[str, float], str]:
@@ -477,6 +563,58 @@ BENCHMARKS = {b.name: b for b in (
               robertson_cases, robertson_check,
               ["Robertson (1966); Hairer & Wanner (1996), Solving ODEs II, sec. IV.1: rates 0.04, 1e4, 3e7",
                "Radau, BDF and LSODA (scipy 1.18.1), rtol 1e-12, atol 1e-22; consistent with the widely printed 5-digit values"]),
+    Benchmark("poisson-2d", "solve(n) -> u[i][j] at nodes x_i = i/n, y_j = j/n, for -(u_xx + u_yy) = 2 pi^2 sin(pi x) sin(pi y), u = 0 on the boundary",
+              "exact solution u = sin(pi x) sin(pi y)", cv.DEFAULT_MARGIN, False, cv.MIN_MARGIN,
+              "none for the problem; the order estimate itself differs from the asymptotic order by O(h)",
+              "order margin on both the max-norm and the discrete L2 norm of the nodal error",
+              poisson2d_cases, poisson2d_check,
+              ["u = sin(pi x) sin(pi y): u_xx = u_yy = -pi^2 u by direct differentiation, and sin vanishes at 0 and pi",
+               "right-hand side re-derived in the tests with sympy",
+               "default margin 0.25 and smallest accepted 0.05 are this plugin's choice (documented in convergence.py)"],
+              kind="convergence",
+              parameters={"--order": "required: the order of accuracy claimed (2 for the 5-point Laplacian)",
+                          "--steps": "base number of intervals n (default 8); levels are n, 2n, 4n, ...",
+                          "--levels": "number of resolutions, 3-8 (default 5)"}),
+    Benchmark("beam-timoshenko", "solver(L, E, G, I, A, kappa, P) -> tip deflection of a cantilever under an end load P",
+              "closed form delta = P L^3 / (3 E I) + P L / (kappa G A)", 1e-12, False, 1e-14,
+              "closed form, limited by roundoff (~1e-15 relative)", "relative error of the tip deflection",
+              beam_cases, beam_check,
+              ["Timoshenko, S. P. (1921), Phil. Mag. 41, 744-746, for the shear correction of beam theory; Timoshenko & Gere, "
+               "Mechanics of Materials, for the cantilever",
+               "cases: a steel rectangular section, a slender beam where shear is 7.8e-7 of bending, a deep beam where it is 19.5 %",
+               "re-derived in the tests by symbolic integration of M(x)/(E I) and V/(kappa G A)"]),
+    Benchmark("linear-solve-hilbert", "solver(A, b) -> x for Hilbert matrices H_n, n = 3 ... 12, given as lists",
+              "the relative residual of a backward-stable solve; x_true and the exact kappa_inf(H_n) are reported beside it",
+              1e-12, False, 1e-15, "roundoff of the residual itself, ~1e-16 relative",
+              "relative residual ||A x - b||_2 / ||b||_2; the forward error is reported and not judged",
+              hilbert_cases, hilbert_check,
+              ["Higham (2002), Accuracy and Stability of Numerical Algorithms, 2nd ed., ch. 7 and 9: LU with partial pivoting "
+               "gives a small residual however ill conditioned the matrix",
+               "the forward error depends on the problem, kappa * eps, not on the solver, so it is not judged",
+               "kappa_inf from the integer inverse of Choi (1983), Amer. Math. Monthly 90, 301-312, in exact arithmetic"]),
+    Benchmark("cavity-ghia", "solver(Re) -> {'y', 'u'} along the vertical centreline of the unit lid-driven cavity, for Re = 100, 1000",
+              "Ghia, Ghia & Shin (1982), Table I, 17 points; the solver's u is interpolated linearly in its y", None, True, 1e-3,
+              "the table has 5 digits, but it is itself a 129 x 129 computation, not an exact solution",
+              "relative L1 over the 17 points: sum|u - u_ref| / sum|u_ref|",
+              cavity_cases, cavity_check,
+              ["Ghia, Ghia & Shin (1982), J. Comput. Phys. 48, 387-411, Table I",
+               "transcribed from two independently kept copies compared by program: gist ivan-pi/3e9326d18a366ffe6a8e5bfda6353219 "
+               "and barbagroup/PetIBM examples/data/ghia_et_al_1982_lid_driven_cavity.dat; not read from the paper itself",
+               "Re = 100 re-derived in the tests with a stream-function solver; Re = 1000 rests on the two copies alone"]),
+    Benchmark("convergence-user", "solve(n) -> (points, values) on the solver's own grid of resolution n; exact(x[, y, ...]) -> float",
+              "the user's exact or manufactured solution, named with --exact (scripts/mms_generator.py writes one)",
+              cv.DEFAULT_MARGIN, False, cv.MIN_MARGIN,
+              "that of the exact solution the user supplies; the order estimate itself differs from the asymptotic order by O(h)",
+              "order margin on the max-norm and the root-mean-square norm of the error at the solver's points",
+              convergence_user_cases, convergence_user_check,
+              ["Order of accuracy from errors at n, 2n, 4n, ...; see convergence.py",
+               "the exact solution is the user's claim: its file is a primary subject of the evidence, like the solver's",
+               "default margin 0.25 and smallest accepted 0.05 are this plugin's choice (documented in convergence.py)"],
+              kind="convergence",
+              parameters={"--exact": "required: 'module:function' or 'path/file.py:function', called as exact(x) or exact(x, y, ...)",
+                          "--order": "required: the order of accuracy claimed",
+                          "--steps": "base resolution n (default 8); levels are n, 2n, 4n, ...",
+                          "--levels": "number of resolutions, 3-8 (default 5)"}),
     Benchmark("convergence-ode", "integrate(f, y0, t0, t1, n_steps) -> y(t1); f(t, y) -> dy/dt (lists of floats)",
               "four problems with exact solutions: decay, oscillator, nonlinear y' = y^2, time-dependent y' = 2ty",
               cv.DEFAULT_MARGIN, False, cv.MIN_MARGIN,
@@ -553,6 +691,8 @@ def run_benchmark(bench: Benchmark, solver: Callable, tol: float, relaxed: Optio
                 entry["repeat_max_difference"] = spread
         except CaseFailure as exc:
             entry.update(passed=False, reason=str(exc))
+        except UsageError:                                # nothing was tested, whatever the solver returned
+            raise
         except TimeoutError as exc:
             timed_out = True
             entry.update(passed=False, reason=str(exc))
@@ -647,17 +787,52 @@ def load_values(path: str) -> List[float]:
     return values
 
 
-def compare_values(ref: List[float], test: List[float], rtol: float, atol: float) -> Dict[str, Any]:
-    """Elementwise |test - ref| <= atol + rtol |ref|. Different lengths, no values, NaN or Inf fail."""
+def vector_norm(values: Sequence[float], norm: str) -> float:
+    """Discrete norm of a vector: the sum, the root sum of squares, or the largest magnitude."""
+    if norm == "l1":
+        return math.fsum(abs(v) for v in values)
+    if norm == "l2":
+        return math.hypot(*values)
+    return max(abs(v) for v in values)
+
+
+def compare_blocks(ref: List[float], test: List[float], norm: str, norm_tol: float, atol: float, blocks: int) -> Dict[str, Any]:
+    """||test - ref|| / ||ref|| <= norm_tol in each of `blocks` equal parts, in order. A block whose reference is all zero has
+    no relative error, so there the absolute norm must be <= atol."""
+    if len(ref) % blocks:
+        return {"reason": f"{len(ref)} values do not split into {blocks} equal blocks"}
+    size = len(ref) // blocks
+    errors, ratios = [], []
+    for k in range(blocks):
+        part_ref, part_test = ref[k * size:(k + 1) * size], test[k * size:(k + 1) * size]
+        absolute = vector_norm([t - r for r, t in zip(part_ref, part_test)], norm)
+        scale = vector_norm(part_ref, norm)
+        error = absolute / scale if scale > 0.0 else absolute
+        allowed = norm_tol if scale > 0.0 else atol
+        errors.append(error)
+        ratios.append(error / allowed if allowed > 0.0 else (0.0 if error == 0.0 else math.inf))
+    worst = max(range(blocks), key=lambda k: ratios[k])
+    return {"passed": all(r <= 1.0 for r in ratios), "block_errors": errors, "worst_block": worst,
+            "worst_error_over_allowed": ratios[worst], "blocks_outside_tolerance": sum(r > 1.0 for r in ratios)}
+
+
+def compare_values(ref: List[float], test: List[float], rtol: Optional[float], atol: float, norm: str = "elementwise",
+                   norm_tol: Optional[float] = None, blocks: int = 1) -> Dict[str, Any]:
+    """Elementwise |test - ref| <= atol + rtol |ref|, or a relative norm per block (see compare_blocks). Different lengths,
+    no values, NaN or Inf fail."""
     result: Dict[str, Any] = {"mode": "compare", "checker_version": CHECKER_VERSION, "passed": False,
-                              "rtol": rtol, "atol": atol, "n_ref": len(ref), "n_test": len(test),
+                              "rtol": rtol, "atol": atol, "norm": norm, "n_ref": len(ref), "n_test": len(test),
                               "runtime": ve.pin_runtime_env()}
+    if norm != "elementwise":
+        result.update(norm_tol=norm_tol, blocks=blocks)
     if not ref and not test:
         result["reason"] = "both files hold no numbers: nothing was compared"
     elif len(ref) != len(test):
         result["reason"] = f"length mismatch: reference {len(ref)} values, test {len(test)}"
     elif not all(map(math.isfinite, ref)) or not all(map(math.isfinite, test)):
         result["reason"] = "NaN or Inf in the reference or the test output"
+    elif norm != "elementwise":
+        result.update(compare_blocks(ref, test, norm, norm_tol, atol, blocks))
     else:
         worst, worst_i, bad = 0.0, 0, 0
         for i, (r, t) in enumerate(zip(ref, test)):
@@ -786,7 +961,9 @@ def run_built_compare(check: Dict[str, Any], base: Path, args) -> Dict[str, Any]
     the committed reference file. The rebuilt reference is what is compared; the committed one must reproduce it."""
     inner = check["compare"]
     ref_spec, test_spec = inner.get("ref_from"), inner.get("test_from")
-    rtol, atol = float(inner["rtol"]), float(inner["atol"])
+    rtol = None if inner.get("rtol") is None else float(inner["rtol"])
+    atol = float(inner.get("atol", 0.0))
+    norm, norm_tol, blocks = inner.get("norm", "elementwise"), inner.get("norm_tol"), int(inner.get("blocks", 1))
     result: Dict[str, Any] = {"mode": "compare", "checker_version": CHECKER_VERSION, "passed": False, "rtol": rtol, "atol": atol,
                               "built": {}}
     try:
@@ -806,7 +983,7 @@ def run_built_compare(check: Dict[str, Any], base: Path, args) -> Dict[str, Any]
             result["built"]["test"] = info
         else:
             test_values = load_values(str(base / inner["test"]))
-        comparison = compare_values(reference, test_values, rtol, atol)
+        comparison = compare_values(reference, test_values, rtol, atol, norm, norm_tol, blocks)
         result.update({k: v for k, v in comparison.items() if k not in ("mode", "checker_version")})
     except rb.BuildFailure as exc:
         result["reason"] = str(exc)
@@ -816,7 +993,7 @@ def run_built_compare(check: Dict[str, Any], base: Path, args) -> Dict[str, Any]
     for spec in (ref_spec, test_spec):
         if spec:
             subjects += [str(base / rel) for rel in spec["pinned"]]
-    tolerance: Dict[str, Any] = {"rtol": rtol, "atol": atol, "ref_from_min": 1 if ref_spec else 0}
+    tolerance: Dict[str, Any] = dict(rm.compare_tolerance(inner), ref_from_min=1 if ref_spec else 0)
     if ref_spec:
         tolerance.update(reproduce_rtol=float(ref_spec["reproduce_rtol"]), reproduce_atol=float(ref_spec["reproduce_atol"]))
     evidence = None
@@ -876,8 +1053,12 @@ def run_one_check(check: Dict[str, Any], base: Path, args) -> Dict[str, Any]:
             common.append("--no-evidence")
         if "compare" in check:
             inner = check["compare"]
-            cmd = ["compare", "--ref", str(base / inner["ref"]), "--test", str(base / inner["test"]),
-                   "--rtol", repr(float(inner["rtol"])), "--atol", repr(float(inner["atol"])), *common]
+            cmd = ["compare", "--ref", str(base / inner["ref"]), "--test", str(base / inner["test"]), *common]
+            if inner.get("norm", "elementwise") == "elementwise":
+                cmd += ["--rtol", repr(float(inner["rtol"])), "--atol", repr(float(inner["atol"]))]
+            else:
+                cmd += ["--norm", inner["norm"], "--norm-tol", repr(float(inner["norm_tol"])), "--blocks", str(inner.get("blocks", 1)),
+                        "--atol", repr(float(inner.get("atol", 0.0)))]
         else:
             path, _, func = check["solver"].rpartition(":")
             cmd = ["run", check["benchmark"], "--solver", f"{base / path}:{func}", *common]
@@ -888,6 +1069,9 @@ def run_one_check(check: Dict[str, Any], base: Path, args) -> Dict[str, Any]:
             for key in ("order", "steps", "levels"):
                 if check.get(key) is not None:
                     cmd += [f"--{key}", repr(float(check[key])) if key == "order" else str(check[key])]
+            if check.get("exact") is not None:
+                exact_path, _, exact_func = check["exact"].rpartition(":")
+                cmd += ["--exact", f"{base / exact_path}:{exact_func}"]
             if check.get("repeat") is not None:
                 cmd += ["--repeat", str(check["repeat"])]
             if check.get("repeat_tol") is not None:
@@ -896,8 +1080,7 @@ def run_one_check(check: Dict[str, Any], base: Path, args) -> Dict[str, Any]:
                 cmd += ["--timeout-s", str(check["timeout_s"])]
         if check.get("approved_relaxation"):
             if "compare" in check:
-                inner = check["compare"]
-                new_tolerance = {"rtol": float(inner["rtol"]), "atol": float(inner["atol"])}
+                new_tolerance = rm.compare_tolerance(check["compare"])
             else:
                 new_tolerance = _planned_run_tolerance(check)
             entry = _approval_entry(check, base, args, new_tolerance)
@@ -925,6 +1108,26 @@ def run_tolerance(bench: Benchmark, tol: float, args) -> Dict[str, Any]:
     return entry
 
 
+def check_compare_options(args) -> None:
+    """One verdict per run: elementwise needs --rtol and --atol, a norm needs --norm-tol and takes no --rtol."""
+    if args.norm == "elementwise":
+        if args.norm_tol is not None or args.blocks != 1:
+            raise UsageError("--norm-tol and --blocks need --norm l1, l2 or linf")
+        if args.rtol is None or args.atol is None:
+            raise UsageError("elementwise comparison needs both --rtol and --atol (no default: state them)")
+        if not (args.rtol >= 0 and args.atol >= 0 and (args.rtol > 0 or args.atol > 0)):
+            raise UsageError("--rtol and --atol must be non-negative and not both zero")
+        return
+    if args.rtol is not None:
+        raise UsageError("--rtol is the elementwise tolerance; with --norm the relative limit is --norm-tol")
+    if args.norm_tol is None or not (args.norm_tol > 0.0 and math.isfinite(args.norm_tol)):
+        raise UsageError("--norm needs --norm-tol, a positive finite number (no default: state it)")
+    if args.blocks < 1:
+        raise UsageError("--blocks must be at least 1")
+    if args.atol is not None and not (args.atol >= 0.0 and math.isfinite(args.atol)):
+        raise UsageError("--atol must be a finite number >= 0")
+
+
 def evidence_command(args) -> int:
     return ve.evidence_command(args.action, args.evidence_dir, args.last, args.subject, args.name, args.kind)
 
@@ -945,6 +1148,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--points", type=int, default=201, help="sod: number of x points handed to the solver (default 201)")
     run.add_argument("--timeout-s", type=int, default=120, help="per solver call (default 120; 0 = no limit)")
     run.add_argument("--order", type=float, help="convergence benchmarks: the order of accuracy you claim (required there)")
+    run.add_argument("--exact", help="convergence-user: the exact or manufactured solution, 'module:func' or 'path/file.py:func'")
     run.add_argument("--steps", type=int, help="convergence benchmarks: base resolution N (default 16 for ode, 8 for bvp)")
     run.add_argument("--levels", type=int, help="convergence benchmarks: number of resolutions N, 2N, 4N, ... (3-8, default 5)")
     run.add_argument("--repeat", type=int, default=2,
@@ -957,8 +1161,14 @@ def build_parser() -> argparse.ArgumentParser:
     cmp_ = sub.add_parser("compare", help="compare your output with golden data you supply")
     cmp_.add_argument("--ref", required=True, help="golden values (text or .npy)")
     cmp_.add_argument("--test", required=True, help="your values for the same inputs (text or .npy)")
-    cmp_.add_argument("--rtol", type=float, required=True, help="relative tolerance (no default: state it)")
-    cmp_.add_argument("--atol", type=float, required=True, help="absolute tolerance (no default: state it)")
+    cmp_.add_argument("--rtol", type=float, help="elementwise relative tolerance (no default: state it)")
+    cmp_.add_argument("--atol", type=float, help="elementwise absolute tolerance (no default: state it); with --norm, the "
+                                                 "limit on the absolute norm of a block whose reference is all zero")
+    cmp_.add_argument("--norm", choices=rm.COMPARE_NORMS, default="elementwise",
+                      help="judge a relative norm instead of each element: for a new scheme against a reference solution, "
+                           "never for a port")
+    cmp_.add_argument("--norm-tol", type=float, help="limit on ||test - ref|| / ||ref|| (required with --norm)")
+    cmp_.add_argument("--blocks", type=int, default=1, help="with --norm: the files hold this many equal fields, each judged alone")
     cmp_.add_argument("--json", help="write the result as JSON")
     ve.add_cli_options(cmp_)
     for name, help_text in (("run-manifest", "run every check in reference-checks.json"),
@@ -997,12 +1207,20 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             bench = BENCHMARKS[args.benchmark]
             if bench.kind != "convergence" and any(v is not None for v in (args.order, args.steps, args.levels)):
                 raise UsageError("--order, --steps and --levels apply to the convergence benchmarks only")
+            if (bench.name == "convergence-user") != (args.exact is not None):
+                raise UsageError("--exact is required by convergence-user and applies to nothing else")
             if not 1 <= args.repeat <= 10:
                 raise UsageError("--repeat must be between 1 and 10")
             if not (args.repeat_tol >= 0.0 and math.isfinite(args.repeat_tol)):
                 raise UsageError("--repeat-tol must be a finite number >= 0")
             tol, relaxed = resolve_tolerance(bench, args.tol)
             solver = load_callable(args.solver)
+            subjects_extra: List[str] = []
+            if args.exact is not None:
+                args.exact_callable = load_callable(args.exact)
+                subjects_extra = [solver_source_file(args.exact_callable)]
+                if (subjects_extra[0], args.exact_callable.__qualname__) == (solver_source_file(solver), solver.__qualname__):
+                    raise UsageError("--solver and --exact name the same function, so the check would compare it with itself")
             result = run_benchmark(bench, solver, tol, relaxed, args)
             evidence = None
             if not args.no_evidence:
@@ -1010,12 +1228,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 failed = [c for c in result["cases"] if not c["passed"]]
                 worst = max((v for c in result["cases"] for v in c.get("errors", {}).values()), default=None)
                 subject_key = ve.subject(source, ve.log_path(args.evidence_dir).parent.parent)["path"]
+                function = args.solver.rsplit(":", 1)[1]        # two solvers in one file are two checks
                 evidence = ve.record_cli(
-                    args, tool=TOOL, plugin=PLUGIN_NAME, kind="benchmark", name=bench.name, key=f"benchmark:{bench.name}:{subject_key}",
-                    passed=result["passed"], subject_paths=[source],
+                    args, tool=TOOL, plugin=PLUGIN_NAME, kind="benchmark", name=bench.name,
+                    key=f"benchmark:{bench.name}:{subject_key}:{function}",
+                    passed=result["passed"], subject_paths=list(dict.fromkeys([source, *subjects_extra])),
                     tolerance=run_tolerance(bench, tol, args),
                     detail={"cases": len(result["cases"]), "failed_cases": len(failed), "largest_error": worst,
-                            "relaxed": relaxed, "checker_version": CHECKER_VERSION, "runtime": ve.pin_runtime_env()})
+                            "relaxed": relaxed, "function": function, "exact": args.exact, "checker_version": CHECKER_VERSION,
+                            "runtime": ve.pin_runtime_env()})
             result["evidence"] = evidence
             report = format_report(result)
             print(report)
@@ -1025,16 +1246,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 Path(args.json).write_text(json.dumps(result, indent=2))
             return ve.finish("check_against_reference", result["passed"], evidence)
         if args.command == "compare":
-            if not (args.rtol >= 0 and args.atol >= 0 and (args.rtol > 0 or args.atol > 0)):
-                raise UsageError("--rtol and --atol must be non-negative and not both zero")
-            result = compare_values(load_values(args.ref), load_values(args.test), args.rtol, args.atol)
+            check_compare_options(args)
+            atol = 0.0 if args.atol is None else args.atol
+            result = compare_values(load_values(args.ref), load_values(args.test), args.rtol, atol, args.norm, args.norm_tol, args.blocks)
             evidence = None
             if not args.no_evidence:
                 base = ve.log_path(args.evidence_dir).parent.parent
                 key = "compare:" + "|".join(ve.subject(p, base)["path"] for p in (args.ref, args.test))
                 evidence = ve.record_cli(
                     args, tool=TOOL, plugin=PLUGIN_NAME, kind="compare", name="compare", key=key, passed=result["passed"],
-                    subject_paths=[args.ref, args.test], tolerance={"rtol": args.rtol, "atol": args.atol},
+                    subject_paths=[args.ref, args.test],
+                    tolerance=rm.compare_tolerance({"rtol": args.rtol, "atol": atol, "norm": args.norm, "norm_tol": args.norm_tol,
+                                                    "blocks": args.blocks}),
                     detail={"n_ref": result["n_ref"], "n_test": result["n_test"],
                             "worst_error_over_allowed": result.get("worst_error_over_allowed"),
                             "checker_version": CHECKER_VERSION, "runtime": ve.pin_runtime_env()})

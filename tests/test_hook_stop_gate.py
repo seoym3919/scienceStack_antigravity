@@ -449,5 +449,125 @@ class FailClosed(Session):
         self.assertIsNone(self.stop())                                    # nothing recorded any more: nothing to report
 
 
+class EvidenceTail(Session):
+    """The hash chain looks backwards, so dropping the newest lines leaves a valid log. The session remembers what it saw."""
+
+    def setUp(self):
+        super().setUp()
+        for number in range(3):
+            ve.append(self.log, {"schema": ve.SCHEMA, "kind": "benchmark", "key": f"k{number}", "passed": True, "subjects": []})
+
+    def shell(self, session=None):
+        return self.run_script(RECORDER, {"hook_event_name": "PostToolUse", "tool_name": "Bash", "tool_input": {"command": "x"},
+                                          "session_id": session or self.session_id, "cwd": str(self.root), "tool_response": {}})
+
+    def lines(self):
+        return self.log.read_text().splitlines()
+
+    def blocked(self, session=None):
+        return self.stop(session) or {}
+
+    def test_dropping_the_last_line_blocks(self):
+        self.shell()
+        self.log.write_text("\n".join(self.lines()[:-1]) + "\n")
+        self.assertEqual(ve.read_log(self.log)[1], [])                  # the chain alone sees nothing wrong
+        result = self.blocked()
+        self.assertEqual(result.get("decision"), "block")
+        self.assertIn("shrank", result["reason"])
+
+    def test_a_new_line_is_normal(self):
+        self.shell()
+        ve.append(self.log, {"schema": ve.SCHEMA, "kind": "benchmark", "key": "k9", "passed": True, "subjects": []})
+        self.assertEqual(self.blocked(), {})
+
+    def test_the_same_count_with_a_different_last_line_blocks(self):
+        self.shell()
+        lines = self.lines()
+        self.log.write_text("\n".join(lines[:-1] + [lines[-1].replace("k2", "k7")]) + "\n")
+        self.assertIn("shrank", self.blocked().get("reason", ""))
+
+    def test_removing_the_whole_directory_blocks_though_the_project_no_longer_looks_opted_in(self):
+        # With no marker left the project has opted out (Gate.test_a_project_that_stopped_being_opted_in_is_ignored), so
+        # the case that can be detected is a project that another marker keeps opted in.
+        (self.root / "reference-checks.json").write_text("{}")
+        self.shell()
+        self.log.unlink()
+        self.log.parent.rmdir()
+        self.assertIn("shrank", self.blocked().get("reason", ""))
+
+    def test_it_is_reported_once(self):
+        self.shell()
+        self.log.write_text("\n".join(self.lines()[:-1]) + "\n")
+        self.assertEqual(self.blocked().get("decision"), "block")
+        self.assertEqual(self.blocked(), {})
+
+    def test_the_record_a_shell_command_added_is_remembered_too(self):
+        self.edited("src/solver.py")
+        ve.append(self.log, {"schema": ve.SCHEMA, "kind": "benchmark", "key": "failed", "passed": False, "subjects": []})
+        self.shell()                                                    # the check ran through Bash
+        self.log.write_text("\n".join(self.lines()[:-1]) + "\n")
+        self.assertIn("shrank", self.blocked().get("reason", ""))
+
+    def test_a_shrunk_log_does_not_overwrite_the_remembered_head(self):
+        self.shell()
+        self.log.write_text("\n".join(self.lines()[:-1]) + "\n")
+        self.shell()                                                    # the next shell command must not launder it
+        self.assertIn("shrank", self.blocked().get("reason", ""))
+
+    def test_a_second_project_is_independent(self):
+        other = self.base / "other"
+        (other / ".verification").mkdir(parents=True)
+        self.git("init", "-q", "-b", "main", cwd=other)
+        other_log = other / ".verification" / "log.jsonl"
+        ve.append(other_log, {"schema": ve.SCHEMA, "kind": "benchmark", "key": "a", "passed": True, "subjects": []})
+        self.shell()
+        self.run_script(RECORDER, {"hook_event_name": "PostToolUse", "tool_name": "Bash", "tool_input": {"command": "x"},
+                                   "session_id": self.session_id, "cwd": str(other), "tool_response": {}})
+        other_log.write_text("")
+        result = self.blocked()
+        self.assertIn("other", result.get("reason", ""))
+        self.assertNotIn("proj", result["reason"].split("\n")[1].split(":")[0])
+
+    def test_a_session_that_saw_nothing_has_nothing_to_compare(self):
+        self.log.write_text("\n".join(self.lines()[:-1]) + "\n")
+        self.assertEqual(self.blocked(), {})
+
+
+class AntigravityPayloads(Session):
+    """Antigravity's documented shape: toolCall, conversationId, workspacePaths, and decision "continue" on Stop."""
+
+    def post(self, name, args):
+        done = self.run_script(RECORDER, {"toolCall": {"name": name, "args": args}, "stepIdx": 3, "conversationId": self.session_id,
+                                          "workspacePaths": [str(self.root)]})
+        self.assertEqual((done.returncode, done.stdout.strip()), (0, "{}"), done.stderr)
+
+    def agy_stop(self, **extra):
+        done = self.run_script(GATE, {"executionNum": 1, "terminationReason": "NO_TOOL_CALL", "fullyIdle": True,
+                                      "conversationId": self.session_id, "workspacePaths": [str(self.root)], **extra})
+        self.assertEqual(done.returncode, 0, done.stderr)
+        return json.loads(done.stdout) if done.stdout.strip() else None
+
+    def test_an_edit_is_recorded_and_the_stop_gate_continues_the_loop(self):
+        self.record()                                                 # a passing check that the edit below makes stale
+        self.change("src/solver.py", "K = 2\n")
+        self.post("edit_file", {"Path": str(self.root / "src" / "solver.py"), "Replacement": "K = 2"})
+        decision = self.agy_stop()
+        self.assertEqual(decision["decision"], "continue")            # anything else lets Antigravity stop
+        self.assertIn("solver.py", decision["reason"])
+
+    def test_a_cancelled_turn_or_a_busy_background_is_not_blocked(self):
+        self.post("edit_file", {"Path": str(self.root / "src" / "solver.py"), "Replacement": "K = 2"})
+        self.assertIsNone(self.agy_stop(terminationReason="USER_CANCELED"))
+        self.assertIsNone(self.agy_stop(fullyIdle=False))
+
+    def test_a_log_that_lost_lines_after_run_command_is_noticed(self):
+        self.record()
+        self.record(name="sod", key="k2")
+        self.post("run_command", {"CommandLine": "python3 check.py"})
+        self.log.write_text(self.log.read_text().splitlines(True)[0])
+        decision = self.agy_stop()
+        self.assertEqual(decision["decision"], "continue")
+
+
 if __name__ == "__main__":
     unittest.main()

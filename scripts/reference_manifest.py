@@ -39,11 +39,14 @@ SCHEMA = "reference-checks/1"
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,59}$")
 TOP_KEYS = {"schema", "checks", "description"}
 COMMON_KEYS = {"id", "rationale", "approved_relaxation"}
-BENCHMARK_KEYS = COMMON_KEYS | {"benchmark", "solver", "tol", "points", "timeout_s", "repeat", "repeat_tol", "order", "steps",
+BENCHMARK_KEYS = COMMON_KEYS | {"benchmark", "solver", "exact", "tol", "points", "timeout_s", "repeat", "repeat_tol", "order", "steps",
                                 "levels"}
 CONVERGENCE_KEYS = ("order", "steps", "levels")
 COMPARE_KEYS = COMMON_KEYS | {"compare"}
-COMPARE_INNER = {"ref", "test", "rtol", "atol", "ref_from", "test_from"}
+COMPARE_INNER = {"ref", "test", "rtol", "atol", "ref_from", "test_from", "norm", "norm_tol", "blocks"}
+COMPARE_NORMS = ("elementwise", "l1", "l2", "linf")
+# How sharply each measure sees a local error. Lower is looser, so moving down this scale after a failure counts as loosening.
+NORM_RANK = {"l1": 1.0, "l2": 2.0, "linf": 3.0}
 
 
 def _bad_path(value: Any) -> bool:
@@ -105,6 +108,13 @@ def validate(manifest: Any, benchmarks: Dict[str, Any],
             path, sep, func = (target or "").rpartition(":") if isinstance(target, str) else ("", "", "")
             if not sep or not func.isidentifier() or _bad_path(path):
                 errors.append(f"{where}: solver must be 'relative/path.py:function' (no '..', no absolute path)")
+            exact = check.get("exact")
+            if name != "convergence-user" and "exact" in check:
+                errors.append(f"{where}: exact applies to 'convergence-user' only")
+            elif name == "convergence-user":
+                path, sep, func = exact.rpartition(":") if isinstance(exact, str) else ("", "", "")
+                if not sep or not func.isidentifier() or _bad_path(path):
+                    errors.append(f"{where}: exact must be 'relative/path.py:function' (no '..', no absolute path)")
             tol = check.get("tol")
             if tol is not None and not _positive(tol):
                 errors.append(f"{where}: tol must be a positive finite number")
@@ -162,20 +172,52 @@ def validate(manifest: Any, benchmarks: Dict[str, Any],
                 errors += rb.validate_side(inner["ref_from"], f"{where}: compare.ref_from", reference=True)
             if "test_from" in inner:
                 errors += rb.validate_side(inner["test_from"], f"{where}: compare.test_from", reference=False)
-            rtol, atol = inner.get("rtol"), inner.get("atol")
-            numbers = [v for v in (rtol, atol) if isinstance(v, (int, float)) and not isinstance(v, bool)]
-            if len(numbers) != 2 or not all(math.isfinite(v) and v >= 0 for v in numbers) or not any(v > 0 for v in numbers):
-                errors.append(f"{where}: compare.rtol and compare.atol are both required, non-negative, not both zero")
+            errors += _compare_tolerance_errors(inner, where)
     return errors
+
+
+def _compare_tolerance_errors(inner: Dict[str, Any], where: str) -> List[str]:
+    norm = inner.get("norm", "elementwise")
+    if norm not in COMPARE_NORMS:
+        return [f"{where}: compare.norm must be one of {', '.join(COMPARE_NORMS)}"]
+    if norm == "elementwise":
+        errors = [f"{where}: compare.{key} needs compare.norm l1, l2 or linf" for key in ("norm_tol", "blocks") if key in inner]
+        rtol, atol = inner.get("rtol"), inner.get("atol")
+        numbers = [v for v in (rtol, atol) if isinstance(v, (int, float)) and not isinstance(v, bool)]
+        if len(numbers) != 2 or not all(math.isfinite(v) and v >= 0 for v in numbers) or not any(v > 0 for v in numbers):
+            errors.append(f"{where}: compare.rtol and compare.atol are both required, non-negative, not both zero")
+        return errors
+    errors = []
+    if "rtol" in inner:
+        errors.append(f"{where}: compare.rtol is the elementwise tolerance; with a norm the relative limit is compare.norm_tol")
+    if not _positive(inner.get("norm_tol")) or not math.isfinite(inner["norm_tol"]):
+        errors.append(f"{where}: compare.norm_tol is required with a norm: a positive finite number")
+    blocks = inner.get("blocks", 1)
+    if isinstance(blocks, bool) or not isinstance(blocks, int) or blocks < 1:
+        errors.append(f"{where}: compare.blocks must be an integer >= 1")
+    atol = inner.get("atol", 0.0)
+    if isinstance(atol, bool) or not isinstance(atol, (int, float)) or not math.isfinite(atol) or atol < 0:
+        errors.append(f"{where}: compare.atol must be a finite number >= 0")
+    return errors
+
+
+def compare_tolerance(inner: Dict[str, Any]) -> Dict[str, float]:
+    """The limits of a compare, as the evidence log and the ratchet record them. Keys ending in _min are minimums: fewer
+    blocks hide a local error in a longer vector, and norm_rank_min falls when the measure gets blunter."""
+    norm = inner.get("norm") or "elementwise"
+    if norm == "elementwise":
+        return {"rtol": float(inner["rtol"]), "atol": float(inner["atol"])}
+    return {"norm_tol": float(inner["norm_tol"]), "atol": float(inner.get("atol") or 0.0), "blocks_min": float(inner.get("blocks") or 1),
+            "norm_rank_min": NORM_RANK[norm]}
 
 
 def effective_tolerance(check: Dict[str, Any], benchmarks: Dict[str, Any]) -> Dict[str, float]:
     """The tolerance a check really uses: its own number, or the benchmark's default."""
     if "compare" in check:
         inner = check["compare"]
-        effective = {"rtol": float(inner["rtol"]), "atol": float(inner["atol"]),
-                     # a reference that is rebuilt is a stronger check than one that is trusted: dropping it is a loosening
-                     "ref_from_min": 1.0 if "ref_from" in inner else 0.0}
+        effective = dict(compare_tolerance(inner),
+                         # a reference that is rebuilt is a stronger check than one that is trusted: dropping it is a loosening
+                         ref_from_min=1.0 if "ref_from" in inner else 0.0)
         if "ref_from" in inner:
             effective["reproduce_rtol"] = float(inner["ref_from"].get("reproduce_rtol", 0.0))
             effective["reproduce_atol"] = float(inner["ref_from"].get("reproduce_atol", 0.0))
@@ -204,7 +246,7 @@ def _identity(check: Dict[str, Any]) -> Tuple[str, str, str]:
     if "compare" in check:
         recipe = check["compare"].get("ref_from")
         return "compare", str(check["compare"].get("ref")), json.dumps(recipe, sort_keys=True) if recipe is not None else ""
-    return "benchmark", str(check.get("benchmark")), ""
+    return "benchmark", str(check.get("benchmark")) + (f" with exact {check['exact']}" if "exact" in check else ""), ""
 
 
 def ratchet(current: Dict[str, Any], baseline: Optional[Dict[str, Any]], benchmarks: Dict[str, Any],
@@ -237,6 +279,8 @@ def ratchet(current: Dict[str, Any], baseline: Optional[Dict[str, Any]], benchma
         for key in tol_new:
             if key in tol_old and looser(key, tol_new[key], tol_old[key]):
                 problems.append(f"{key} loosened from {tol_old[key]:g} to {tol_new[key]:g}")
+        if "rtol" in tol_old and "norm_tol" in tol_new:
+            problems.append("an elementwise comparison was replaced by a norm")
         if not problems:
             continue
         reason = (new.get("approved_relaxation") or "").strip()

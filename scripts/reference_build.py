@@ -74,6 +74,10 @@ def _safe_relative(value: Any) -> bool:
     return ".." not in parts and "" not in parts
 
 
+SHELLS = {"sh", "bash", "dash", "zsh", "ksh", "csh", "tcsh", "fish", "cmd", "cmd.exe", "powershell", "powershell.exe", "pwsh",
+          "pwsh.exe"}
+
+
 def validate_side(spec: Any, where: str, reference: bool) -> List[str]:
     """Every problem with one `ref_from` / `test_from` block (empty list = valid)."""
     if not isinstance(spec, dict):
@@ -88,6 +92,11 @@ def validate_side(spec: Any, where: str, reference: bool) -> List[str]:
         for index, step in enumerate(steps):
             if not isinstance(step, list) or not step or not all(isinstance(a, str) and a and "\0" not in a for a in step):
                 errors.append(f"{where}: steps[{index}] must be a non-empty list of non-empty strings (an argument list, not a shell line)")
+                continue
+            if Path(step[0].replace("\\", "/")).name.lower() in SHELLS:
+                errors.append(f"{where}: steps[{index}] starts a shell; steps run without a shell by design, so call the program directly")
+            if any("\n" in argument or "\r" in argument for argument in step):
+                errors.append(f"{where}: steps[{index}] holds a line break; an argument is not a script")
                 continue
             for argument in step:
                 for name in PLACEHOLDER.findall(argument):

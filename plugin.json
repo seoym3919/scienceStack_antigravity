@@ -1,24 +1,24 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "sciencestack",
-  "version": "0.22.0",
-  "description": "rigorous agent workflows for scientific coding, theoretical accuracy, equation provenance, and numerical stability in Antigravity.",
+  "version": "0.23.0",
+  "description": "Strict verification and validation for scientific and engineering code in Antigravity: reference benchmarks, order-of-convergence measurement, golden-data comparison, evidence logs and test ratchets, with equation provenance and numerical stability.",
   "author": {
-    "name": "Lauren Tan & Antigravity Scientific Coding"
+    "name": "scienceStack Scientific Team"
   },
-  "homepage": "https://github.com/cursor/plugins/tree/main/pstack",
-  "repository": "https://github.com/cursor/plugins",
+  "homepage": "https://github.com/seoym3919/scienceStack_antigravity",
+  "repository": "https://github.com/seoym3919/scienceStack_antigravity",
   "license": "MIT",
   "keywords": [
     "scienceStack",
     "science-mode",
     "scientific-coding",
-    "scstack",
+    "verification",
+    "golden-data",
+    "convergence",
     "workflow",
     "principles",
-    "agent-style",
-    "subagents",
-    "unslop"
+    "subagents"
   ],
   "displayName": "scienceStack",
   "logo": "assets/logo.svg",
